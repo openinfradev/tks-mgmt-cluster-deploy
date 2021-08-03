@@ -1,0 +1,36 @@
+# aws ssh key name
+sshKeyName: ssh_admin
+
+cluster:
+  name: admin
+  region: ap-northeast-2
+  kubernetesVersion: v1.20.8
+  podCidrBlocks:
+  - 192.168.0.0/16
+  bastion:
+    enabled: true
+    instanceType: t3.micro
+  baseOS: ubuntu-20.04
+
+apiVersion:
+  infrastructure: infrastructure.cluster.x-k8s.io/v1alpha3
+  controlplane: controlplane.cluster.x-k8s.io/v1alpha3
+  bootstrap: bootstrap.cluster.x-k8s.io/v1alpha3
+
+kubeadmControlPlane:
+  replicas: 3
+  controlPlaneMachineType: t3.large
+  rootVolume:
+    size: 20
+    type: gp2
+
+machinePool:
+  enabled: true
+  machineType: t3.2xlarge
+  replicas: 1
+  minSize: 1
+  maxSize: 10
+  rootVolume:
+    size: 100
+    type: gp2
+  subnets: []

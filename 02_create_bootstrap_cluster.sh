@@ -2,7 +2,7 @@
 
 set -e
 
-source  common.sh
+source common.sh
 
 if [ -z "$1" ]
   then
@@ -27,9 +27,9 @@ sudo chmod +x /usr/local/bin/k3s
 sudo cp $1/helm /usr/local/bin
 
 chmod +x $ASSETS_DIR/install.sh
-INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC="server --cluster-domain taco_tmp" $ASSETS_DIR/install.sh
+INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC="server --cluster-domain tks.bootstrap" $ASSETS_DIR/install.sh
 
-sleep 60
+sleep 20
 while true
 do
 	node_count=$(sudo kubectl get no --kubeconfig /etc/rancher/k3s/k3s.yaml | grep master | wc -l)
@@ -55,5 +55,6 @@ done
 [ -d ~/.kube ] || mkdir ~/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
 sudo chown $USER:$USER ~/.kube/config
+chmod 600 ~/.kube/config
 
 print_msg "Bootstrap cluster created successfully. You can access bootstrap cluster using ~/.kube/config as a kubeconfig file"
