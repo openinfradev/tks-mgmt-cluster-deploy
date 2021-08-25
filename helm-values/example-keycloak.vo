@@ -1,0 +1,16 @@
+externalDatabase:
+  database: keycloak
+  host: postgresql.decapod-db.svc
+  password: keycloak
+  user: keycloak
+postgresql:
+  enabled: false
+
+auth:
+  adminUser: admin
+  adminPassword: password
+
+proxyAddressForwarding: true
+
+service:
+  type: ClusterIP
