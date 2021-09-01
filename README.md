@@ -1,6 +1,6 @@
 # TACO 구독형 서비스를 위한 관리 클러스터 구성 자동화
 
-cluster-api를 활용하여 TACO 구독형 서비스를 위한 관리 클러스터 구성을 자동화
+cluster-api를 활용한 kubernetes Cluster 배포시 필요한 관리 클러스터 구성을 자동화
 * Single Bootstrap VM으로부터 Self-managed TACO management cluster 구축
 
 ## Prerequisite for a bootstrap VM
