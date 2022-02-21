@@ -1,6 +1,6 @@
 K3S_VERSION="latest"
 YQ_VERSION="latest"
-ARGOWF_VERSION="v3.1.3"
+ARGOWF_VERSION="v3.2.6"
 CAPI_RELEASE="v1alpha3"
 case $CAPI_RELEASE in
 	"v1alpha3")
@@ -30,4 +30,4 @@ case $CAPI_INFRA_PROVIDER in
 		;;
 esac
 
-ARGOCD_VERSION="3.9.0"
+ARGOCD_VERSION="3.33.6"
