@@ -21,14 +21,14 @@ print_msg "Creating TKS Admin Cluster via Cluster API"
 
 create_capa_cluster () {
 	CHART_DIR=$ASSET_DIR/taco-helm/cluster-api-aws
-	helm install tks-admin $CHART_DIR -f $HELM_VALUE_FILE
+	helm upgrade -i tks-admin $CHART_DIR -f $HELM_VALUE_FILE
 
 	CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 }
 
 create_capo_cluster () {
 	CHART_DIR=$ASSET_DIR/taco-helm/cluster-api-openstack
-	helm install tks-admin $CHART_DIR -f $HELM_VALUE_FILE
+	helm upgrade -i tks-admin $CHART_DIR -f $HELM_VALUE_FILE
 }
 
 case $CAPI_INFRA_PROVIDER in
@@ -96,8 +96,8 @@ clusterctl get kubeconfig $CLUSTER_NAME > kubeconfig_$CLUSTER_NAME
 chmod 600 kubeconfig_$CLUSTER_NAME
 
 print_msg  "Installing kubernetes addons for network and stroage"
-helm install --kubeconfig kubeconfig_$CLUSTER_NAME k8s-addons $ASSET_DIR/taco-helm/kubernetes-addons $HELM_VALUE_K8S_ADDONS
-helm install --kubeconfig kubeconfig_$CLUSTER_NAME aws-ebs-csi-driver --namespace kube-system $ASSET_DIR/aws-ebs-csi-driver/aws-ebs-csi-driver
+helm upgrade -i --kubeconfig kubeconfig_$CLUSTER_NAME k8s-addons $ASSET_DIR/taco-helm/kubernetes-addons $HELM_VALUE_K8S_ADDONS
+helm upgrade -i --kubeconfig kubeconfig_$CLUSTER_NAME aws-ebs-csi-driver --namespace kube-system $ASSET_DIR/aws-ebs-csi-driver/aws-ebs-csi-driver
 
 for node in $(kubectl get no --kubeconfig kubeconfig_$CLUSTER_NAME -o jsonpath='{.items[*].metadata.name}');do
 	kubectl wait --kubeconfig kubeconfig_$CLUSTER_NAME --for=condition=Ready no/$node

@@ -24,7 +24,7 @@ print_msg "Installing Decapod-bootstrap..."
 kubectl create ns argo || true
 kubectl create ns decapod-db || true
 
-helm install argo-cd $ASSET_DIR/argo-cd-helm/argo-cd -f $ASSET_DIR/decapod-bootstrap/argocd-install/values-override.yaml -n argo
+helm upgrade -i argo-cd $ASSET_DIR/argo-cd-helm/argo-cd -f $ASSET_DIR/decapod-bootstrap/argocd-install/values-override.yaml -n argo
 
 for ns in decapod-db argo; do
 	for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do
