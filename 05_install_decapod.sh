@@ -20,8 +20,8 @@ export KUBECONFIG=kubeconfig_$CLUSTER_NAME
 
 print_msg "Installing Decapod-bootstrap..."
 
-kubectl create ns argo
-kubectl create ns decapod-db
+kubectl create ns argo || true
+kubectl create ns decapod-db || true
 
 helm install argo-cd $ASSET_DIR/argo-cd-helm/argo-cd -f $ASSET_DIR/decapod-bootstrap/argocd-install/values-override.yaml -n argo
 
