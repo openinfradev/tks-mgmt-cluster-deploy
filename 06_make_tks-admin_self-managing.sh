@@ -44,6 +44,12 @@ for ns in cert-manager capi-webhook-system capi-system capi-kubeadm-bootstrap-sy
 done
 print_msg "... done"
 
+print_msg "Copying TKS admin cluster kubeconfig secret to argo namespace"
+kubectl get secret $CLUSTER_NAME-kubeconfig -ojsonpath={.data.value} | base64 -d > value
+kubectl create secret generic tks-admin-kubeconfig-secret -n argo --from-file=value
+rm value
+print_msg "... done"
+
 export KUBECONFIG=~/.kube/config
 
 print_msg  "Pre-check before pivot"
@@ -57,4 +63,5 @@ done
 
 print_msg "Pivoting to make TKS admin cluster self-managing"
 clusterctl move --to-kubeconfig kubeconfig_$CLUSTER_NAME
+
 print_msg "Finished. Check the status of all cluster API resources in the admin cluster and use the bastion host: $BASTION_HOST_IP"

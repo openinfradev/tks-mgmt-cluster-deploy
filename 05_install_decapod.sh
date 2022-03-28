@@ -43,6 +43,10 @@ print_msg "... done"
 print_msg "Run prepare-argocd workflow..."
 ARGOCD_PASSWD=$(kubectl -n argo get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-server:80 -p argo_password=$ARGOCD_PASSWD
-WF_NAME=$(argo list -n argo -o name| grep prepare | head -1)
-print_msg "You can check the results with the following commands:"
-echo "$ argo --kubeconfig $KUBECONFIG get -n argo $WF_NAME"
+argo watch -n argo @latest
+print_msg "... done"
+
+print_msg "Run tks-create-github-token-secret workflow..."
+argo submit --from wftmpl/tks-create-github-token-secret -n argo -p user=$GITHUB_USERNAME -p token=$GITHUB_TOKEN
+argo watch -n argo @latest
+print_msg "... done"
