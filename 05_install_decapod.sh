@@ -37,8 +37,11 @@ print_msg "All applications for bootstrap have been installed successfully"
 
 sleep 30
 
-print_msg "Creating workflow templates from decapod-flow..."
+print_msg "Creating workflow templates from decapod and tks-flow..."
 kubectl apply -R -f $ASSET_DIR/decapod-flow/templates -n argo
+for dir in $(ls -l $ASSET_DIR/tks-flow/ |grep "^d"|awk '{print $9}'); do
+	kubectl apply -R -f $ASSET_DIR/tks-flow/$dir -n argo
+done
 print_msg "... done"
 
 print_msg "Run prepare-argocd workflow..."
