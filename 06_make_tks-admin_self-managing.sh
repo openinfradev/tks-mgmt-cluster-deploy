@@ -45,9 +45,15 @@ done
 print_msg "... done"
 
 export KUBECONFIG=~/.kube/config
+
 print_msg  "Pre-check before pivot"
 clusterctl move --to-kubeconfig kubeconfig_$CLUSTER_NAME --dry-run -v10
 print_msg "... done"
+
+# Fix for 'MP_NAME is invalid: spec.awsLaunchTemplate.rootVolume.deviceName: Forbidden: root volume shouldn't have device name'
+for awsmp_name in $(kubectl get mp -ojsonpath={.items[*].metadata.name}); do
+	kubectl patch awsmp $awsmp_name --type json -p='[{"op": "remove", "path": "/spec/awsLaunchTemplate/rootVolume/deviceName"}]'
+done
 
 print_msg "Pivoting to make TKS admin cluster self-managing"
 clusterctl move --to-kubeconfig kubeconfig_$CLUSTER_NAME
