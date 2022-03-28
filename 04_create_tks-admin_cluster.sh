@@ -15,6 +15,8 @@ ASSET_DIR=$1
 HELM_VALUE_FILE=$2
 HELM_VALUE_K8S_ADDONS="--set cni.calico.enabled=true"
 
+export KUBECONFIG=~/.kube/config
+
 print_msg "Creating TKS Admin Cluster via Cluster API"
 
 create_capa_cluster () {

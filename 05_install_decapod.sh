@@ -11,6 +11,7 @@ if [ -z "$1" ]
 fi
 
 ASSET_DIR=$1
+export KUBECONFIG=~/.kube/config
 CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 
 chmod +x $ASSET_DIR/argo-workflows/$ARGOWF_VERSION/argo-linux-amd64

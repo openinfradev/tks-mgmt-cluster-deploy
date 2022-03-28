@@ -12,6 +12,7 @@ fi
 
 SSH_KEY=$1
 
+export KUBECONFIG=~/.kube/config
 CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 
 print_msg "Copying all local resources to the bastion host"

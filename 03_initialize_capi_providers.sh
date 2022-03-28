@@ -10,6 +10,8 @@ if [ -z "$1" ]
     exit 1
 fi
 
+export KUBECONFIG=~/.kube/config
+
 print_msg "Preparing Cluster API providers initilizaiton"
 
 sudo cp $1/cluster-api/$CAPI_VERSION/clusterctl-linux-amd64 /usr/local/bin/clusterctl
