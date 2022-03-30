@@ -88,7 +88,7 @@ rm -rf helm.tar.gz linux-amd64
 print_msg "...Done"
 
 print_msg "Downloading TACO Helm chart"
-git clone --quiet https://github.com/openinfradev/taco-helm.git $ASSETS_DIR/taco-helm
+git clone --quiet https://github.com/openinfradev/taco-helm.git $ASSETS_DIR/taco-helm -b $TKS_RELEASE
 print_msg "...Done"
 
 print_msg "Downloading Argo Helm chart"
@@ -100,15 +100,15 @@ helm pull aws-ebs-csi-driver --repo https://kubernetes-sigs.github.io/aws-ebs-cs
 print_msg "...Done"
 
 print_msg "Downloading Decapod bootstrap"
-git clone --quiet https://github.com/openinfradev/decapod-bootstrap $ASSETS_DIR/decapod-bootstrap
+git clone --quiet https://github.com/openinfradev/decapod-bootstrap $ASSETS_DIR/decapod-bootstrap -b $TKS_RELEASE
 print_msg "...Done"
 
 print_msg "Downloading Decapod flow"
-git clone --quiet https://github.com/openinfradev/decapod-flow $ASSETS_DIR/decapod-flow
+git clone --quiet https://github.com/openinfradev/decapod-flow $ASSETS_DIR/decapod-flow -b $TKS_RELEASE
 print_msg "...Done"
 
 print_msg "Downloading TKS flow"
-git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-flow $ASSETS_DIR/tks-flow
+git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-flow $ASSETS_DIR/tks-flow -b $TKS_RELEASE
 print_msg "...Done"
 
 cd $ASSETS_DIR

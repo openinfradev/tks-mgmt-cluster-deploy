@@ -1,3 +1,5 @@
+TKS_RELEASE=v2.0.0-rc1
+
 CAPI_INFRA_PROVIDER="aws" # aws or openstack
 # when 'aws' is an infrastructure provider
 AWS_REGION=ap-northeast-2
