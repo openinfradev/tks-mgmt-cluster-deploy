@@ -1,21 +1,16 @@
 # aws ssh key name
-sshKeyName: ssh_admin
+sshKeyName: example-sshkey
 
 cluster:
-  name: admin
+  name: tks-admin-example
   region: ap-northeast-2
-  kubernetesVersion: v1.20.8
+  kubernetesVersion: v1.22.8
   podCidrBlocks:
   - 192.168.0.0/16
   bastion:
     enabled: true
     instanceType: t3.micro
   baseOS: ubuntu-20.04
-
-apiVersion:
-  infrastructure: infrastructure.cluster.x-k8s.io/v1alpha3
-  controlplane: controlplane.cluster.x-k8s.io/v1alpha3
-  bootstrap: bootstrap.cluster.x-k8s.io/v1alpha3
 
 kubeadmControlPlane:
   replicas: 3
@@ -25,12 +20,14 @@ kubeadmControlPlane:
     type: gp2
 
 machinePool:
-  enabled: true
+- name: tks-example-worker
   machineType: t3.2xlarge
-  replicas: 1
+  replicas: 3
   minSize: 1
   maxSize: 10
   rootVolume:
-    size: 100
+    size: 200
     type: gp2
   subnets: []
+  labels:
+    taco-tks: enabled

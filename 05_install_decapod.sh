@@ -11,6 +11,7 @@ if [ -z "$1" ]
 fi
 
 ASSET_DIR=$1
+export KUBECONFIG=~/.kube/config
 CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 
 chmod +x $ASSET_DIR/argo-workflows/$ARGOWF_VERSION/argo-linux-amd64
@@ -20,10 +21,10 @@ export KUBECONFIG=kubeconfig_$CLUSTER_NAME
 
 print_msg "Installing Decapod-bootstrap..."
 
-kubectl create ns argo
-kubectl create ns decapod-db
+kubectl create ns argo || true
+kubectl create ns decapod-db || true
 
-helm install argo-cd $ASSET_DIR/argo-cd-helm/argo-cd -f $ASSET_DIR/decapod-bootstrap/argocd-install/values-override.yaml -n argo
+helm upgrade -i argo-cd $ASSET_DIR/argo-cd-helm/argo-cd -f $ASSET_DIR/decapod-bootstrap/argocd-install/values-override.yaml -n argo
 
 for ns in decapod-db argo; do
 	for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do
@@ -36,13 +37,20 @@ print_msg "All applications for bootstrap have been installed successfully"
 
 sleep 30
 
-print_msg "Creating workflow templates from decapod-flow..."
+print_msg "Creating workflow templates from decapod and tks-flow..."
 kubectl apply -R -f $ASSET_DIR/decapod-flow/templates -n argo
+for dir in $(ls -l $ASSET_DIR/tks-flow/ |grep "^d"|awk '{print $9}'); do
+	kubectl apply -R -f $ASSET_DIR/tks-flow/$dir -n argo
+done
 print_msg "... done"
 
 print_msg "Run prepare-argocd workflow..."
 ARGOCD_PASSWD=$(kubectl -n argo get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-server:80 -p argo_password=$ARGOCD_PASSWD
-WF_NAME=$(argo list -n argo -o name| grep prepare | head -1)
-print_msg "You can check the results with the following commands:"
-echo "$ argo --kubeconfig $KUBECONFIG get -n argo $WF_NAME"
+argo watch -n argo @latest
+print_msg "... done"
+
+print_msg "Run tks-create-github-token-secret workflow..."
+argo submit --from wftmpl/tks-create-github-token-secret -n argo -p user=$GITHUB_USERNAME -p token=$GITHUB_TOKEN
+argo watch -n argo @latest
+print_msg "... done"

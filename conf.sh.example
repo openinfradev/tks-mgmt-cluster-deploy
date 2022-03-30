@@ -1,33 +1,8 @@
-K3S_VERSION="latest"
-YQ_VERSION="latest"
-ARGOWF_VERSION="v3.2.6"
-CAPI_RELEASE="v1alpha3"
-case $CAPI_RELEASE in
-	"v1alpha3")
-		CAPI_VERSION="v0.3.22"
-		CAPA_VERSION="v0.6.7"
-		CAPO_VERSION="v0.3.4"
-		;;
-	"v1alpha4")
-		CAPI_VERSION="v0.4.0"
-		CAPA_VERSION="v0.7.0"
-		CAPO_VERSION="v0.4.0"
-		;;
-esac
-
 CAPI_INFRA_PROVIDER="aws" # aws or openstack
+# when 'aws' is an infrastructure provider
+AWS_REGION=ap-northeast-2
+AWS_ACCESS_KEY_ID=XXX_MUST_BE_FILLED
+AWS_SECRET_ACCESS_KEY=XXX_MUST_BE_FILLED
 
-case $CAPI_INFRA_PROVIDER in
-	"aws")
-		NUMBER_OF_AZS_IN_THE_REGION=3
-		AWS_REGION=ap-northeast-2
-		AWS_ACCESS_KEY_ID=XXX_Must_be_filled
-		AWS_SECRET_ACCESS_KEY=XXX_Must_be_filled
-		CAPI_PROVIDER_NS=capa-system
-		;;
-	"openstack")
-		CAPI_PROVIDER_NS=capo-system
-		;;
-esac
-
-ARGOCD_VERSION="3.33.6"
+GITHUB_USERNAME=XXX_MUST_BE_FILLED
+GITHUB_TOKEN=XXX_MUST_BE_FILLED
