@@ -46,7 +46,7 @@ print_msg "... done"
 
 print_msg "Run prepare-argocd workflow..."
 ARGOCD_PASSWD=$(kubectl -n argo get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
-argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-server:80 -p argo_password=$ARGOCD_PASSWD
+argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-server.argo.svc:80 -p argo_password=$ARGOCD_PASSWD
 argo watch -n argo @latest
 print_msg "... done"
 
