@@ -1,4 +1,4 @@
-# 관리 클러스터 (Admin Cluster) 구성 자동화
+# 관리 클러스터 (Admin/Mgmt Cluster) 구성 자동화
 
 cluster-api를 활용한 kubernetes Cluster 배포시 필요한 관리 클러스터 구성을 자동화
 * Single Bootstrap VM으로부터 Self-managed TACO management cluster 구축
