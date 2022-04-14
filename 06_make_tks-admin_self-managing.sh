@@ -49,7 +49,7 @@ export KUBECONFIG=~/.kube/config
 
 print_msg "Copying TKS admin cluster kubeconfig secret to argo namespace"
 kubectl get secret $CLUSTER_NAME-kubeconfig -ojsonpath={.data.value} | base64 -d > value
-kubectl create secret generic tks-admin-kubeconfig-secret -n argo --from-file=value
+kubectl --kubeconfig kubeconfig_$CLUSTER_NAME create secret generic tks-admin-kubeconfig-secret -n argo --from-file=value
 rm value
 print_msg "... done"
 
