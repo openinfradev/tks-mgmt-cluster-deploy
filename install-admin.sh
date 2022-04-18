@@ -13,7 +13,7 @@ cd tks-mgmt-cluster-deploy/
 
 # prepare definitions for the target
 PAM=$1
-while [ ! -f $PAM ] 
+while [ -z $1 ] || [! -f $PAM  ] 
 do
   echo 'ssh key는 aws의 해당 지점에 준비되어야 하며 key 파일도 로컬에 준비되어야 합니다.'
   read -p 'aws에서 생성한 ssh key 파일을 입력하세요.(type q to exit) : ' PAM
