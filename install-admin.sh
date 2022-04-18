@@ -6,15 +6,17 @@ confirm() {
   read -p "계속 진행하시겠습니까?(y/n) : " name
   [[ $name == 'y' ]] && clear || exit -1
 }
+BASEDIR=`pwd`/
 
 # clone batch files
-[[ -d "$(pwd)/tks-mgmt-cluster-deploy" ]] && echo 'skip git clone'|| git clone https://github.com/openinfradev/tks-mgmt-cluster-deploy.git -b release-v2
+[[ -d "${BASEDIR}tks-mgmt-cluster-deploy" ]] && echo 'skip git clone'|| git clone https://github.com/openinfradev/tks-mgmt-cluster-deploy.git -b release-v2
 cd tks-mgmt-cluster-deploy/
 
 # prepare definitions for the target
 PAM=$1
-while [ -z $1 ] || [! -f $PAM  ] 
+while [ -z $PAM ] || [ ! -f ${BASEDIR}$PAM  ] 
 do
+  echo "넘겨받은 파일 - ${BASEDIR}$PAM - 이 없어요.."
   echo 'ssh key는 aws의 해당 지점에 준비되어야 하며 key 파일도 로컬에 준비되어야 합니다.'
   read -p 'aws에서 생성한 ssh key 파일을 입력하세요.(type q to exit) : ' PAM
   [[ $PAM == 'q' ]] && exit -1
@@ -97,4 +99,4 @@ confirm 'Admin Cluster에 Keycloak 설치'
 confirm 'Admin Clyster에 Ingress Controller설치'
 ./05_z2_install_nginx_ingress.sh
 confirm 'Admin Clutser가 스스로를 Cluster API로 management하게 Pivoting'
-./06_make_tks-admin_self-managing.sh $PAM
+./06_make_tks-admin_self-managing.sh ${BASEDIR}$PAM
