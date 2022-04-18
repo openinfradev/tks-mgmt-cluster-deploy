@@ -5,6 +5,15 @@ confirm() {
   [[ $name == 'y' ]] && clear || exit -1
 }
 
+
+PAM=$1
+while [ ! -f $PAM ] 
+do
+  echo 'ssh key는 aws의 해당 지점에 준비되어야 하며 key 파일도 로컬에 준비되어야 합니다.'
+  read -p 'aws에서 생성한 ssh key 파일을 입력하세요.(type q to exit) : ' PAM
+  [[ $PAM == 'q' ]] && exit -1
+done
+
 confirm 'Artifcat 생성: "asset-YYYY-MM-DD" Directory 생성됨'
 ./01_prepare_assets.sh
 confirm 'K3S install';
@@ -21,4 +30,4 @@ confirm 'Admin Cluster에 Keycloak 설치'
 confirm 'Admin Clyster에 Ingress Controller설치'
 ./05_z2_install_nginx_ingress.sh
 confirm 'Admin Clutser가 스스로를 Cluster API로 management하게 Pivoting'
-./06_make_tks-admin_self-managing.sh
+./06_make_tks-admin_self-managing.sh  $PAM
