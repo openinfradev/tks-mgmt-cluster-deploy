@@ -35,7 +35,7 @@ read -p "AWS_SECRET_ACCESS_KEY={AWS ACESS KEY}?: " AWS_SECRET_KEY
 read -p "GITHUB_USERNAME={ex. demo-dacapod10}?: " GITHUB_USERNAME
 read -p "GITHUB_TOKEN={TOKEN}?: " GITHUB_TOKEN
 
-echo "TKS_RELEASE=v2.0.0-rc1
+echo "TKS_RELEASE=release-v2
 
 CAPI_INFRA_PROVIDER="aws" # aws or openstack
 # when 'aws' is an infrastructure provider
@@ -51,7 +51,7 @@ echo "
 sshKeyName: $PAM
 
 cluster:
-  name: tks-test-cluster
+  name: admin-test
   region: $AWS_REGION
   kubernetesVersion: v1.22.8
   podCidrBlocks:
@@ -69,7 +69,7 @@ kubeadmControlPlane:
     type: gp2
 
 machinePool:
-- name: tks-test-mp
+- name: mp
   machineType: t3.2xlarge
   replicas: 3
   minSize: 1
