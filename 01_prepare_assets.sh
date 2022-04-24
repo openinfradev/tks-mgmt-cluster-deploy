@@ -111,6 +111,10 @@ print_msg "Downloading TKS flow"
 git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-flow $ASSETS_DIR/tks-flow -b $TKS_RELEASE
 print_msg "...Done"
 
+print_msg "Downloading TKS proto"
+git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-proto $ASSETS_DIR/tks-proto -b $TKS_RELEASE
+print_msg "...Done"
+
 cd $ASSETS_DIR
 [ ! -L bootstrap-kubeadm ] && ln -s cluster-api bootstrap-kubeadm
 [ ! -L control-plane-kubeadm ] && ln -s cluster-api control-plane-kubeadm

@@ -44,6 +44,10 @@ for dir in $(ls -l $ASSET_DIR/tks-flow/ |grep "^d"|awk '{print $9}'); do
 done
 print_msg "... done"
 
+print_msg "Creating configmap from tks-proto..."
+kubectl create cm tks-proto -n argo --from-file=$ASSET_DIR/tks-proto/tks_pb_python -o yaml --dry-run=client | kubectl apply -f -
+print_msg "... done"
+
 print_msg "Run prepare-argocd workflow..."
 ARGOCD_PASSWD=$(kubectl -n argo get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-server.argo.svc:80 -p argo_password=$ARGOCD_PASSWD
