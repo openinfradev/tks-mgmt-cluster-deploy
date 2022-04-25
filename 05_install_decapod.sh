@@ -63,3 +63,4 @@ print_msg "Run tks-create-github-token-secret workflow..."
 argo submit --from wftmpl/tks-create-github-token-secret -n argo -p user=$GITHUB_USERNAME -p token=$GITHUB_TOKEN
 argo watch -n argo @latest
 print_msg "... done"
+
