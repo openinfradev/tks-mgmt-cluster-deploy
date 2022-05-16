@@ -13,7 +13,7 @@ export KUBECONFIG=kubeconfig_$CLUSTER_NAME
 
 print_msg "Installing Keycloak..."
 
-argo submit --from wftmpl/install-admin-tools -p app_prefix=tks-admin -n argo
+argo submit --from wftmpl/install-admin-tools -p app_prefix=tks-admin -p revision=$TKS_RELEASE -n argo
 
 for ns in keycloak; do
         for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do

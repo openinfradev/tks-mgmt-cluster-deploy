@@ -9,9 +9,9 @@ CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 export KUBECONFIG=kubeconfig_$CLUSTER_NAME
 
 print_msg "Installing NGINX Ingress..."
-kubectl create ns ingress-nginx
-helm repo add nginx-stable https://helm.nginx.com/stable
-helm upgrade -i nginx-ingress nginx-stable/nginx-ingress -n ingress-nginx
+helm upgrade --install ingress-nginx ingress-nginx \
+  --repo https://kubernetes.github.io/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
 
 for ns in ingress-nginx; do
 	for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do
