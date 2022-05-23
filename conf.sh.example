@@ -1,6 +1,7 @@
-TKS_RELEASE=v2.0.0-rc1
+TKS_RELEASE=v2.0.0
 
-CAPI_INFRA_PROVIDER="aws" # aws or openstack
+CAPI_INFRA_PROVIDER="byoh" # aws, byoh or openstack
+
 # when 'aws' is an infrastructure provider
 AWS_REGION=ap-northeast-2
 AWS_ACCESS_KEY_ID=XXX_MUST_BE_FILLED

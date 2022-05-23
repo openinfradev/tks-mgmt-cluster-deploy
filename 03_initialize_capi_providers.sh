@@ -35,6 +35,9 @@ providers:
   - name: "openstack"
     url: "file://localhost$(realpath $1)/infrastructure-openstack/$CAPO_VERSION/infrastructure-components.yaml"
     type: "InfrastructureProvider"
+  - name: "byoh"
+    url: "file://localhost$(realpath $1)/infrastructure-byoh/$BYOH_VERSION/infrastructure-components.yaml"
+    type: "InfrastructureProvider"
 EOF
 
 print_msg "Installing Cluster API providers"

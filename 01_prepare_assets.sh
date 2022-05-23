@@ -12,6 +12,8 @@ CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws/rel
 CAPA_ASSETS_FILES=(metadata.yaml clusterawsadm-linux-amd64 infrastructure-components.yaml)
 CAPO_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases"
 CAPO_ASSETS_FILES=(metadata.yaml infrastructure-components.yaml)
+BYOH_ASSETS_URL="https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases"
+BYOH_ASSETS_FILES=(metadata.yaml infrastructure-components.yaml byoh-hostagent-linux-amd64)
 ARGOWF_ASSETS_URL="https://github.com/argoproj/argo-workflows/releases"
 ARGOWF_ASSETS_FILES=(argo-linux-amd64.gz)
 ARGOCD_ASSETS_URL="https://github.com/argoproj/argo-cd/releases"
@@ -69,6 +71,9 @@ case $CAPI_INFRA_PROVIDER in
 	"openstack")
 		download_assets_from_github CAPO
 		;;
+	"byoh")
+		download_assets_from_github BYOH
+		;;
 esac
 download_assets_from_github ARGOCD
 download_assets_from_github ARGOWF && gunzip $ASSETS_DIR/argo-workflows/$ARGOWF_VERSION/argo-linux-amd64.gz
@@ -125,6 +130,9 @@ case $CAPI_INFRA_PROVIDER in
 		;;
 	"openstack")
 		[ ! -L infrastructure-openstack ] && ln -s cluster-api-provider-openstack infrastructure-openstack
+		;;
+	"byoh")
+		[ ! -L infrastructure-byoh ] && ln -s cluster-api-provider-bringyourownhost infrastructure-byoh
 		;;
 esac
 cd -

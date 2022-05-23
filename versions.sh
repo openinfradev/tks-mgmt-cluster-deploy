@@ -18,5 +18,6 @@ case $CAPI_RELEASE in
         "v1beta1")
                 CAPI_VERSION="v1.1.3"
                 CAPA_VERSION="v1.3.0"
+                BYOH_VERSION="v0.2.0"
                 ;;
 esac
