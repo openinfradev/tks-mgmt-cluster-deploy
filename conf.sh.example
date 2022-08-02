@@ -1,8 +1,10 @@
-TKS_RELEASE=v2.0.0
+TKS_RELEASE=v2.0.0-rc1
 
-CAPI_INFRA_PROVIDER="byoh" # aws, byoh or openstack
+TKS_ADMIN_CLUSTER_INFRA_PROVIDER="aws"
 
-# when 'aws' is an infrastructure provider
+declare -a CAPI_INFRA_PROVIDERS=("aws" "byoh")
+
+# when 'aws' is in infrastructure providers
 AWS_REGION=ap-northeast-2
 AWS_ACCESS_KEY_ID=XXX_MUST_BE_FILLED
 AWS_SECRET_ACCESS_KEY=XXX_MUST_BE_FILLED

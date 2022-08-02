@@ -37,7 +37,7 @@ read -p "GITHUB_TOKEN={TOKEN}?: " GITHUB_TOKEN
 
 echo "TKS_RELEASE=release-v2
 
-CAPI_INFRA_PROVIDER="aws" # aws or openstack
+CAPI_INFRA_PROVIDERS=("aws")
 # when 'aws' is an infrastructure provider
 AWS_REGION=$AWS_REGION
 AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY

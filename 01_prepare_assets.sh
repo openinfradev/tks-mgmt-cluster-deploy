@@ -10,8 +10,6 @@ CAPI_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api/releases"
 CAPI_ASSETS_FILES=(metadata.yaml bootstrap-components.yaml cluster-api-components.yaml clusterctl-linux-amd64 control-plane-components.yaml core-components.yaml)
 CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases"
 CAPA_ASSETS_FILES=(metadata.yaml clusterawsadm-linux-amd64 infrastructure-components.yaml)
-CAPO_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases"
-CAPO_ASSETS_FILES=(metadata.yaml infrastructure-components.yaml)
 BYOH_ASSETS_URL="https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases"
 BYOH_ASSETS_FILES=(metadata.yaml infrastructure-components.yaml byoh-hostagent-linux-amd64)
 ARGOWF_ASSETS_URL="https://github.com/argoproj/argo-workflows/releases"
@@ -22,117 +20,115 @@ ARGOCD_ASSETS_FILES=(argocd-linux-amd64)
 ASSETS_DIR="assets-`date "+%Y-%m-%d"`"
 
 github_get_latest_release() {
-  curl --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
-    grep '"tag_name":' |                                            # Get tag line
-    sed -E 's/.*"([^"]+)".*/\1/'                                    # Pluck JSON value
-}
+	curl --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
+		grep '"tag_name":' |                                            # Get tag line
+		sed -E 's/.*"([^"]+)".*/\1/'                                    # Pluck JSON value
+	}
 
-download_assets_from_github () {
-	eval url='$'$1_ASSETS_URL
-	eval files='$'{$1_ASSETS_FILES[@]}
-	eval version='$'$1_VERSION
+	download_assets_from_github () {
+		eval url='$'$1_ASSETS_URL
+		eval files='$'{$1_ASSETS_FILES[@]}
+		eval version='$'$1_VERSION
 
-	reponame=${url%/releases*}
-	reponame=${reponame##*.com/}
+		reponame=${url%/releases*}
+		reponame=${reponame##*.com/}
 
-	print_msg "Downloading from $reponame"
+		print_msg "Downloading from $reponame"
 
-	if [ $version == "latest" ]
-	then
+		if [ $version == "latest" ]
+		then
 
-		tag=$(github_get_latest_release $reponame)
-	else
-		tag=$version
-	fi
+			tag=$(github_get_latest_release $reponame)
+		else
+			tag=$version
+		fi
 
-	dest_dir=$ASSETS_DIR/$(basename $reponame)/$tag
-	mkdir -p $dest_dir
+		dest_dir=$ASSETS_DIR/$(basename $reponame)/$tag
+		mkdir -p $dest_dir
 
-	for f in ${files[@]}
+		for f in ${files[@]}
+		do
+			curl -sSL "$url/download/$tag/$f" -o $dest_dir/$f
+		done
+
+		print_msg "...Done"
+	}
+
+	print_msg "Download assets to the $ASSETS_DIR directory"
+
+	rm -rf  $ASSETS_DIR
+	mkdir $ASSETS_DIR
+
+	download_assets_from_github K3S
+	download_assets_from_github CAPI
+	for provider in ${CAPI_INFRA_PROVIDERS[@]}
 	do
-		curl -sSL "$url/download/$tag/$f" -o $dest_dir/$f
+		case $provider in
+			"aws")
+				download_assets_from_github CAPA
+				;;
+			"byoh")
+				download_assets_from_github BYOH
+				;;
+		esac
 	done
+	download_assets_from_github ARGOCD
+	download_assets_from_github ARGOWF && gunzip $ASSETS_DIR/argo-workflows/$ARGOWF_VERSION/argo-linux-amd64.gz
 
+	print_msg "Downloading K3S install scripts"
+	K3S_TAG=$(github_get_latest_release k3s-io/k3s)
+	curl -sSL https://get.k3s.io -o $ASSETS_DIR/k3s/$K3S_TAG/install.sh
 	print_msg "...Done"
-}
 
-print_msg "Download assets to the $ASSETS_DIR directory"
+	print_msg "Downloading and installing Helm client"
+	HELM_TAGS=$(github_get_latest_release helm/helm)
+	curl -sSL https://get.helm.sh/helm-$HELM_TAGS-linux-amd64.tar.gz -o helm.tar.gz
+	tar xvfz helm.tar.gz > /dev/null
+	cp linux-amd64/helm $ASSETS_DIR
+	sudo cp linux-amd64/helm /usr/local/bin/helm
+	rm -rf helm.tar.gz linux-amd64
+	print_msg "...Done"
 
-rm -rf  $ASSETS_DIR
-mkdir $ASSETS_DIR
+	print_msg "Downloading TACO Helm chart"
+	git clone --quiet https://github.com/openinfradev/taco-helm.git $ASSETS_DIR/taco-helm -b $TKS_RELEASE
+	print_msg "...Done"
 
-download_assets_from_github K3S
-download_assets_from_github CAPI
-case $CAPI_INFRA_PROVIDER in
-	"aws")
-		download_assets_from_github CAPA
-		;;
+	print_msg "Downloading Argo Helm chart"
+	helm pull argo-cd --repo https://argoproj.github.io/argo-helm --version $ARGOCD_CHART_VERSION --untar --untardir $ASSETS_DIR/argo-cd-helm
+	print_msg "...Done"
 
-	"openstack")
-		download_assets_from_github CAPO
-		;;
-	"byoh")
-		download_assets_from_github BYOH
-		;;
-esac
-download_assets_from_github ARGOCD
-download_assets_from_github ARGOWF && gunzip $ASSETS_DIR/argo-workflows/$ARGOWF_VERSION/argo-linux-amd64.gz
+	print_msg "Downloading AWS EBS CSI chart"
+	helm pull aws-ebs-csi-driver --repo https://kubernetes-sigs.github.io/aws-ebs-csi-driver --untar --untardir $ASSETS_DIR/aws-ebs-csi-driver
+	print_msg "...Done"
 
-print_msg "Downloading K3S install scripts"
-K3S_TAG=$(github_get_latest_release k3s-io/k3s)
-curl -sSL https://get.k3s.io -o $ASSETS_DIR/k3s/$K3S_TAG/install.sh
-print_msg "...Done"
+	print_msg "Downloading Decapod bootstrap"
+	git clone --quiet https://github.com/openinfradev/decapod-bootstrap $ASSETS_DIR/decapod-bootstrap -b $TKS_RELEASE
+	print_msg "...Done"
 
-print_msg "Downloading and installing Helm client"
-HELM_TAGS=$(github_get_latest_release helm/helm)
-curl -sSL https://get.helm.sh/helm-$HELM_TAGS-linux-amd64.tar.gz -o helm.tar.gz
-tar xvfz helm.tar.gz > /dev/null
-cp linux-amd64/helm $ASSETS_DIR
-sudo cp linux-amd64/helm /usr/local/bin/helm
-rm -rf helm.tar.gz linux-amd64
-print_msg "...Done"
+	print_msg "Downloading Decapod flow"
+	git clone --quiet https://github.com/openinfradev/decapod-flow $ASSETS_DIR/decapod-flow -b $TKS_RELEASE
+	print_msg "...Done"
 
-print_msg "Downloading TACO Helm chart"
-git clone --quiet https://github.com/openinfradev/taco-helm.git $ASSETS_DIR/taco-helm -b $TKS_RELEASE
-print_msg "...Done"
+	print_msg "Downloading TKS flow"
+	git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-flow $ASSETS_DIR/tks-flow -b $TKS_RELEASE
+	print_msg "...Done"
 
-print_msg "Downloading Argo Helm chart"
-helm pull argo-cd --repo https://argoproj.github.io/argo-helm --version $ARGOCD_CHART_VERSION --untar --untardir $ASSETS_DIR/argo-cd-helm
-print_msg "...Done"
+	print_msg "Downloading TKS proto"
+	git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-proto $ASSETS_DIR/tks-proto -b $TKS_RELEASE
+	print_msg "...Done"
 
-print_msg "Downloading AWS EBS CSI chart"
-helm pull aws-ebs-csi-driver --repo https://kubernetes-sigs.github.io/aws-ebs-csi-driver --untar --untardir $ASSETS_DIR/aws-ebs-csi-driver
-print_msg "...Done"
+	cd $ASSETS_DIR
+	[ ! -L bootstrap-kubeadm ] && ln -s cluster-api bootstrap-kubeadm
+	[ ! -L control-plane-kubeadm ] && ln -s cluster-api control-plane-kubeadm
 
-print_msg "Downloading Decapod bootstrap"
-git clone --quiet https://github.com/openinfradev/decapod-bootstrap $ASSETS_DIR/decapod-bootstrap -b $TKS_RELEASE
-print_msg "...Done"
-
-print_msg "Downloading Decapod flow"
-git clone --quiet https://github.com/openinfradev/decapod-flow $ASSETS_DIR/decapod-flow -b $TKS_RELEASE
-print_msg "...Done"
-
-print_msg "Downloading TKS flow"
-git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-flow $ASSETS_DIR/tks-flow -b $TKS_RELEASE
-print_msg "...Done"
-
-print_msg "Downloading TKS proto"
-git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-proto $ASSETS_DIR/tks-proto -b $TKS_RELEASE
-print_msg "...Done"
-
-cd $ASSETS_DIR
-[ ! -L bootstrap-kubeadm ] && ln -s cluster-api bootstrap-kubeadm
-[ ! -L control-plane-kubeadm ] && ln -s cluster-api control-plane-kubeadm
-
-case $CAPI_INFRA_PROVIDER in
-        "aws")
-		[ ! -L infrastructure-aws ] && ln -s cluster-api-provider-aws infrastructure-aws
-		;;
-	"openstack")
-		[ ! -L infrastructure-openstack ] && ln -s cluster-api-provider-openstack infrastructure-openstack
-		;;
-	"byoh")
-		[ ! -L infrastructure-byoh ] && ln -s cluster-api-provider-bringyourownhost infrastructure-byoh
-		;;
-esac
-cd -
+	for provider in ${CAPI_INFRA_PROVIDERS[@]}
+		case $provider in
+			"aws")
+				[ ! -L infrastructure-aws ] && ln -s cluster-api-provider-aws infrastructure-aws
+				;;
+			"byoh")
+				[ ! -L infrastructure-byoh ] && ln -s cluster-api-provider-bringyourownhost infrastructure-byoh
+				;;
+		esac
+	done
+	cd -

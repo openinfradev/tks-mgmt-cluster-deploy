@@ -19,28 +19,13 @@ export KUBECONFIG=~/.kube/config
 
 print_msg "Creating TKS Admin Cluster via Cluster API"
 
-create_capa_cluster () {
-	CHART_DIR=$ASSET_DIR/taco-helm/cluster-api-aws
-	helm upgrade -i tks-admin $CHART_DIR -f $HELM_VALUE_FILE
-
-	CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
-}
-
-create_capo_cluster () {
-	CHART_DIR=$ASSET_DIR/taco-helm/cluster-api-openstack
+create_cluster () {
+	CHART_DIR=$ASSET_DIR/${CAPI_CHART_DIR[$1]}
 	helm upgrade -i tks-admin $CHART_DIR -f $HELM_VALUE_FILE
 }
 
-case $CAPI_INFRA_PROVIDER in
-        "aws")
-                create_capa_cluster
-                ;;
-
-        "openstack")
-		create_capo_cluster
-                ;;
-esac
-
+create_cluster $TKS_ADMIN_CLUSTER_INFRA_PROVIDER
+CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 print_msg "TKS Admin cluster chart successfully installed"
 
 print_msg "Verifing TKS Admin cluster is ready"
@@ -73,15 +58,15 @@ do
   CONTROL_PLANE_REPLICAS_DESIRED=$(kubectl get kcp -o=jsonpath='{.items[?(@.metadata.name == "'$CLUSTER_NAME-control-plane'")].status.replicas}')
   [ $(kubectl get machine | grep $CLUSTER_NAME | grep control-plane | grep Running | wc -l) -ne $CONTROL_PLANE_REPLICAS_DESIRED ] && continue
 
-  case $CAPI_INFRA_PROVIDER in
+  case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
 	  "aws")
 		  MP_NAME=$(kubectl get mp -ojsonpath={.items[0].metadata.name})
 		  kubectl wait --for=condition=Ready awsmachinepool/$MP_NAME || continue
 		  ;;
 
-	  "openstack")
-		  WORKER_REPLICAS_DESIRED=$(kubectl get md -o=jsonpath='{.items[?(@.metadata.name == "'$CLUSTER_NAME-md-0'")].status.replicas}')
-		  [ $(kubectl get machine | grep $CLUSTER_NAME | grep md-0 | grep Running | wc -l) -ne $WORKER_REPLICAS_DESIRED ] && continue
+	  "byoh")
+		  WORKER_REPLICAS_DESIRED=$(kubectl get md -o=jsonpath='{.items[?(@.metadata.name == "'$CLUSTER_NAME-md-tks'")].status.replicas}')
+		  [ $(kubectl get machine | grep $CLUSTER_NAME | grep md-tks | grep Running | wc -l) -ne $WORKER_REPLICAS_DESIRED ] && continue
 		  ;;
   esac
 

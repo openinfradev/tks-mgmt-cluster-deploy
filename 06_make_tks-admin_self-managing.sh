@@ -23,7 +23,7 @@ print_msg "... done"
 
 export KUBECONFIG=kubeconfig_$CLUSTER_NAME
 print_msg "Initializing cluster API provider components in TKS admin cluster"
-case $CAPI_INFRA_PROVIDER in
+case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
 	"aws")
 		export AWS_REGION
 		export AWS_ACCESS_KEY_ID
@@ -32,12 +32,13 @@ case $CAPI_INFRA_PROVIDER in
 		export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 		export EXP_MACHINE_POOL=true
 		;;
-	"openstack")
+	"byoh")
 		;;
 esac
 
-clusterctl init --infrastructure $CAPI_INFRA_PROVIDER
+clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}")
 
+CAPI_PROVIDER_NS=$(for provider in ${CAPI_INFRA_PROVIDERS[@]};do echo -n "${INFRA_PROVIDER_NS[$provider]} "; done)
 for ns in cert-manager capi-webhook-system capi-system capi-kubeadm-bootstrap-system capi-kubeadm-control-plane-system $CAPI_PROVIDER_NS; do
 	for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do
 		kubectl wait --for=condition=Ready --timeout 180s -n $ns po/$po
