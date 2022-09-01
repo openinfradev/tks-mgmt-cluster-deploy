@@ -2,28 +2,38 @@
 
 set -e
 
-source common.sh
+source lib/common.sh
 
-if [ -z "$1" ]
-then
-	echo "usage: $0 <ssh_key.pem>"
-	exit 1
-fi
-
-SSH_KEY=$1
+case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
+	"aws")
+		if [ -z "$1" ]
+		then
+			echo "usage: $0 <ssh_key.pem>"
+			exit 1
+		fi
+		SSH_KEY=$1
+		;;
+	"byoh")
+		;;
+esac
 
 export KUBECONFIG=~/.kube/config
 CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 
-print_msg "Copying all local resources to the bastion host"
-BASTION_HOST_IP=$(kubectl get awscluster $CLUSTER_NAME -o jsonpath='{.status.bastion.addresses[?(@.type == "ExternalIP")].address}')
-ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@$BASTION_HOST_IP sudo rm -rf "${PWD##*/}"
-scp -r -q -i $SSH_KEY -o StrictHostKeyChecking=no $PWD ubuntu@$BASTION_HOST_IP:
-print_msg "... done"
+case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
+	"aws")
+		log_info "Copying all local resources to the bastion host"
+		BASTION_HOST_IP=$(kubectl get awscluster $CLUSTER_NAME -o jsonpath='{.status.bastion.addresses[?(@.type == "ExternalIP")].address}')
+		ssh -i $SSH_KEY -o StrictHostKeyChecking=no ubuntu@$BASTION_HOST_IP sudo rm -rf "${PWD##*/}"
+		scp -r -q -i $SSH_KEY -o StrictHostKeyChecking=no $PWD ubuntu@$BASTION_HOST_IP:
+		;;
+	"byoh")
+		;;
+esac
 
-export KUBECONFIG=kubeconfig_$CLUSTER_NAME
-print_msg "Initializing cluster API provider components in TKS admin cluster"
-case $CAPI_INFRA_PROVIDER in
+export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
+log_info "Initializing cluster API provider components in TKS admin cluster"
+case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
 	"aws")
 		export AWS_REGION
 		export AWS_ACCESS_KEY_ID
@@ -31,38 +41,51 @@ case $CAPI_INFRA_PROVIDER in
 
 		export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 		export EXP_MACHINE_POOL=true
+
+		CAPI_PROVIDER_NS=capa-system
 		;;
-	"openstack")
+	"byoh")
+		CAPI_PROVIDER_NS=byoh-system
 		;;
 esac
 
-clusterctl init --infrastructure $CAPI_INFRA_PROVIDER
-
-for ns in cert-manager capi-webhook-system capi-system capi-kubeadm-bootstrap-system capi-kubeadm-control-plane-system $CAPI_PROVIDER_NS; do
-	for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do
-		kubectl wait --for=condition=Ready --timeout 180s -n $ns po/$po
-	done
-done
-print_msg "... done"
+gum spin --spinner dot --title "Waiting for providers to be installed..." -- clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}") --wait-providers
 
 export KUBECONFIG=~/.kube/config
 
-print_msg "Copying TKS admin cluster kubeconfig secret to argo namespace"
+log_info "Copying TKS admin cluster kubeconfig secret to argo namespace"
 kubectl get secret $CLUSTER_NAME-kubeconfig -ojsonpath={.data.value} | base64 -d > value
-kubectl --kubeconfig kubeconfig_$CLUSTER_NAME create secret generic tks-admin-kubeconfig-secret -n argo --from-file=value
+kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME create secret generic tks-admin-kubeconfig-secret -n argo --from-file=value
 rm value
-print_msg "... done"
 
-print_msg  "Pre-check before pivot"
-clusterctl move --to-kubeconfig kubeconfig_$CLUSTER_NAME --dry-run -v10
-print_msg "... done"
+log_info  "Pre-check before pivot"
+clusterctl move --to-kubeconfig output/kubeconfig_$CLUSTER_NAME --dry-run -v10
 
-# Fix for 'MP_NAME is invalid: spec.awsLaunchTemplate.rootVolume.deviceName: Forbidden: root volume shouldn't have device name'
-for awsmp_name in $(kubectl get mp -ojsonpath={.items[*].metadata.name}); do
-	kubectl patch awsmp $awsmp_name --type json -p='[{"op": "remove", "path": "/spec/awsLaunchTemplate/rootVolume/deviceName"}]'
-done
+case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
+	"aws")
+		# Fix for 'MP_NAME is invalid: spec.awsLaunchTemplate.rootVolume.deviceName: Forbidden: root volume shouldn't have device name'
+		for awsmp_name in $(kubectl get mp -ojsonpath={.items[*].metadata.name}); do
+			kubectl patch awsmp $awsmp_name --type json -p='[{"op": "remove", "path": "/spec/awsLaunchTemplate/rootVolume/deviceName"}]'
+		done
+		;;
+	"byoh")
+		;;
+esac
 
-print_msg "Pivoting to make TKS admin cluster self-managing"
-clusterctl move --to-kubeconfig kubeconfig_$CLUSTER_NAME
+log_info "Pivoting to make TKS admin cluster self-managing"
+clusterctl move --to-kubeconfig output/kubeconfig_$CLUSTER_NAME
 
-print_msg "Finished. Check the status of all cluster API resources in the admin cluster and use the bastion host: $BASTION_HOST_IP"
+case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
+	"aws")
+		log_info "Finished. Check the status of all cluster API resources in the admin cluster and use the bastion host: $BASTION_HOST_IP"
+		;;
+	"byoh")
+
+		# TODO
+		# create byoh in admin cluster
+		kubectl get byoh -o yaml | KUBECONFIG=output/kubeconfig_$CLUSTER_NAME kubectl apply -f - 
+		#kubectl apply -f byohs_in_bootstrap.yaml
+		# restart agents in the hosts
+		log_info "Finished."
+		;;
+esac

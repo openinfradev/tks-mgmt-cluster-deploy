@@ -13,12 +13,15 @@ CAPI_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api/releases"
 CAPI_ASSETS_FILES=(metadata.yaml bootstrap-components.yaml cluster-api-components.yaml clusterctl-linux-amd64 control-plane-components.yaml core-components.yaml)
 CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases"
 CAPA_ASSETS_FILES=(metadata.yaml clusterawsadm-linux-amd64 infrastructure-components.yaml)
-CAPO_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases"
-CAPO_ASSETS_FILES=(metadata.yaml infrastructure-components.yaml)
+BYOH_ASSETS_URL="https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases"
+BYOH_ASSETS_FILES=(metadata.yaml infrastructure-components.yaml byoh-hostagent-linux-amd64)
 ARGOWF_ASSETS_URL="https://github.com/argoproj/argo-workflows/releases"
 ARGOWF_ASSETS_FILES=(argo-linux-amd64.gz)
 ARGOCD_ASSETS_URL="https://github.com/argoproj/argo-cd/releases"
 ARGOCD_ASSETS_FILES=(argocd-linux-amd64)
+GUM_ASSETS_URL="https://github.com/charmbracelet/gum/releases"
+GUM_ASSETS_FILES=(gum_0.5.0_linux_x86_64.tar.gz)
+GUM_VERSION="latest"
 
 ASSETS_DIR="assets-`date "+%Y-%m-%d"`"
 
@@ -52,81 +55,129 @@ download_assets_from_github () {
 	do
 		curl -sSL "$url/download/$tag/$f" -o $dest_dir/$f
 	done
-
-	print_msg "...Done"
 }
 
-print_msg "Download assets to the $ASSETS_DIR directory"
+log_info "=== Download assets to the $ASSETS_DIR directory ==="
 
-rm -rf  $ASSETS_DIR
+check_if_supported_os
+
+if [ -d $ASSETS_DIR ]; then
+	log_warn "$ASSETS_DIR is already exist"
+	gum confirm "Are you sure you want to clear the current directory and proceed?" || exit 1
+fi
+
+rm -rf $ASSETS_DIR
+
 mkdir $ASSETS_DIR
+mkdir -p output
 
-download_assets_from_github K3S
-download_assets_from_github CAPI
-case $CAPI_INFRA_PROVIDER in
-	"aws")
-		download_assets_from_github CAPA
+download_assets_from_github GUM
+GUM_ASSETS_DIR="$ASSETS_DIR/gum/$(ls $ASSETS_DIR/gum | grep v)"
+cd $GUM_ASSETS_DIR
+tar xfz $(ls)
+sudo cp gum /usr/local/bin
+cd - >/dev/null
+
+log_info "Downloading docker packages"
+mkdir $ASSETS_DIR/docker-ce
+cd $ASSETS_DIR/docker-ce
+for pkg in ${DOCKER_PKGS_UBUNTU[@]}
+do
+	curl -sSLO https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/amd64/$pkg
+done
+for pkg in ${DOCKER_PKGS_CENTOS[@]}
+do
+	curl -sSLO https://download.docker.com/linux/centos/8/x86_64/stable/Packages/$pkg
+done
+cd - >/dev/null
+
+log_info "Installing docker packages"
+case $OS_ID in
+	"rocky" | "centos" | "rhel")
+		sudo rpm -Uvh $ASSETS_DIR/docker-ce/*.rpm
 		;;
 
-	"openstack")
-		download_assets_from_github CAPO
+	"ubuntu" )
+		sudo dpkg -i $ASSETS_DIR/docker-ce/*.deb
 		;;
 esac
+sudo systemctl start docker
+
+download_assets_from_github KIND
+log_info "Downloading a kind node image"
+sudo docker pull kindest/node:$KIND_NODE_IMAGE_TAG
+sudo docker save kindest/node:$KIND_NODE_IMAGE_TAG | gzip > $ASSETS_DIR/kind-node-image.tar.gz
+
+download_assets_from_github CAPI
+for provider in ${CAPI_INFRA_PROVIDERS[@]}
+do
+	case $provider in
+		"aws")
+			download_assets_from_github CAPA
+			;;
+		"byoh")
+			download_assets_from_github BYOH
+			cp $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/byoh-hostagent-linux-amd64 output/
+			chmod +x output/byoh-hostagent-linux-amd64
+			;;
+	esac
+done
+
 download_assets_from_github ARGOCD
 download_assets_from_github ARGOWF && gunzip $ASSETS_DIR/argo-workflows/$ARGOWF_VERSION/argo-linux-amd64.gz
 
-print_msg "Downloading K3S install scripts"
-K3S_TAG=$(github_get_latest_release k3s-io/k3s)
-curl -sSL https://get.k3s.io -o $ASSETS_DIR/k3s/$K3S_TAG/install.sh
-print_msg "...Done"
-
-print_msg "Downloading and installing Helm client"
+log_info "Downloading and installing Helm client"
 HELM_TAGS=$(github_get_latest_release helm/helm)
 curl -sSL https://get.helm.sh/helm-$HELM_TAGS-linux-amd64.tar.gz -o helm.tar.gz
 tar xvfz helm.tar.gz > /dev/null
 cp linux-amd64/helm $ASSETS_DIR
 sudo cp linux-amd64/helm /usr/local/bin/helm
 rm -rf helm.tar.gz linux-amd64
-print_msg "...Done"
 
-print_msg "Downloading TACO Helm chart"
-git clone --quiet https://github.com/openinfradev/taco-helm.git $ASSETS_DIR/taco-helm -b $TKS_RELEASE
-print_msg "...Done"
+# TODO: use associate arrays..
+log_info "Downloading TACO Helm chart source"
+#git clone --quiet https://github.com/openinfradev/helm-charts.git $ASSETS_DIR/taco-helm -b $TKS_RELEASE
+git clone --quiet https://github.com/openinfradev/helm-charts.git $ASSETS_DIR/taco-helm -b byoh_v0.3.0
 
-print_msg "Downloading Argo Helm chart"
+log_info "Downloading TACO Helm Repo"
+git clone --quiet https://github.com/openinfradev/helm-repo.git $ASSETS_DIR/helm-repo -b $TKS_RELEASE
+
+log_info "Downloading Argo Helm chart"
 helm pull argo-cd --repo https://argoproj.github.io/argo-helm --version $ARGOCD_CHART_VERSION --untar --untardir $ASSETS_DIR/argo-cd-helm
-print_msg "...Done"
 
-print_msg "Downloading AWS EBS CSI chart"
+log_info "Downloading AWS EBS CSI chart"
 helm pull aws-ebs-csi-driver --repo https://kubernetes-sigs.github.io/aws-ebs-csi-driver --untar --untardir $ASSETS_DIR/aws-ebs-csi-driver
-print_msg "...Done"
 
-print_msg "Downloading Decapod bootstrap"
+log_info "Downloading Decapod bootstrap"
 git clone --quiet https://github.com/openinfradev/decapod-bootstrap $ASSETS_DIR/decapod-bootstrap -b $TKS_RELEASE
-print_msg "...Done"
 
-print_msg "Downloading Decapod flow"
+log_info "Downloading Decapod flow"
 git clone --quiet https://github.com/openinfradev/decapod-flow $ASSETS_DIR/decapod-flow -b $TKS_RELEASE
-print_msg "...Done"
 
-print_msg "Downloading TKS flow"
+log_info "Downloading TKS flow"
 git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-flow $ASSETS_DIR/tks-flow -b $TKS_RELEASE
-print_msg "...Done"
 
-print_msg "Downloading TKS proto"
+log_info "Downloading TKS proto"
 git clone --quiet https://$GITHUB_TOKEN@github.com/openinfradev/tks-proto $ASSETS_DIR/tks-proto -b $TKS_RELEASE
-print_msg "...Done"
+
+log_info "Downloading kubectl"
+curl -sL -o $ASSETS_DIR/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 
 cd $ASSETS_DIR
 [ ! -L bootstrap-kubeadm ] && ln -s cluster-api bootstrap-kubeadm
 [ ! -L control-plane-kubeadm ] && ln -s cluster-api control-plane-kubeadm
 
-case $CAPI_INFRA_PROVIDER in
-        "aws")
-		[ ! -L infrastructure-aws ] && ln -s cluster-api-provider-aws infrastructure-aws
-		;;
-	"openstack")
-		[ ! -L infrastructure-openstack ] && ln -s cluster-api-provider-openstack infrastructure-openstack
-		;;
-esac
-cd -
+for provider in ${CAPI_INFRA_PROVIDERS[@]}
+do
+	case $provider in
+		"aws")
+			[ ! -L infrastructure-aws ] && ln -s cluster-api-provider-aws infrastructure-aws
+			;;
+		"byoh")
+			[ ! -L infrastructure-byoh ] && ln -s cluster-api-provider-bringyourownhost infrastructure-byoh
+			;;
+	esac
+done
+cd - >/dev/null
+
+log_info "...Done"

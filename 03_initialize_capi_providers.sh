@@ -2,7 +2,7 @@
 
 set -e
 
-source common.sh
+source lib/common.sh
 
 if [ -z "$1" ]
   then
@@ -10,13 +10,10 @@ if [ -z "$1" ]
     exit 1
 fi
 
-export KUBECONFIG=~/.kube/config
-
-print_msg "Preparing Cluster API providers initilizaiton"
+log_info "Preparing Cluster API providers initilizaiton"
 
 sudo cp $1/cluster-api/$CAPI_VERSION/clusterctl-linux-amd64 /usr/local/bin/clusterctl
 sudo chmod +x /usr/local/bin/clusterctl
-clusterctl version # TODO: air gap?
 
 cat > clusterctl.yaml <<EOF
 providers:
@@ -37,24 +34,34 @@ providers:
     type: "InfrastructureProvider"
 EOF
 
-print_msg "Installing Cluster API providers"
+log_info "Installing Cluster API providers"
 
 cp clusterctl.yaml ~/.cluster-api/
 
-case $CAPI_INFRA_PROVIDER in
-	"aws")
-		sudo cp $1/cluster-api-provider-aws/$CAPA_VERSION/clusterawsadm-linux-amd64 /usr/local/bin/clusterawsadm
-		sudo chmod +x /usr/local/bin/clusterawsadm
+CAPI_NAMESPACE="cert-manager capi-system capi-kubeadm-bootstrap-system capi-kubeadm-control-plane-system"
 
-		export AWS_REGION
-		export AWS_ACCESS_KEY_ID
-		export AWS_SECRET_ACCESS_KEY
+for provider in ${CAPI_INFRA_PROVIDERS[@]}
+do
+	case $provider in
+		"aws")
+			sudo cp $1/cluster-api-provider-aws/$CAPA_VERSION/clusterawsadm-linux-amd64 /usr/local/bin/clusterawsadm
+			sudo chmod +x /usr/local/bin/clusterawsadm
 
-		export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
-		export EXP_MACHINE_POOL=true
-		;;
-	"openstack")
-		;;
-esac
+			export AWS_REGION
+			export AWS_ACCESS_KEY_ID
+			export AWS_SECRET_ACCESS_KEY
 
-clusterctl init --infrastructure $CAPI_INFRA_PROVIDER
+			export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+			export EXP_MACHINE_POOL=true
+			
+			CAPI_NAMESPACE+=" $provider-system"
+			;;
+		"byoh")
+			CAPI_NAMESPACE+=" $provider-system"
+			;;
+	esac
+done
+
+gum spin --spinner dot --title "Waiting for providers to be installed..." -- clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}") --wait-providers
+
+log_info "...Done"

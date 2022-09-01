@@ -1,0 +1,184 @@
+#!/bin/bash
+set -ex
+
+K8S_VERSION=1.22.3
+
+BOOTSTRAP_KUBECONFIG="${bootstrap_kubeconfig}"
+
+check_if_supported_os() {
+	source <(sed 's/^/OS_/g' /etc/os-release)
+
+	case $OS_ID in
+		"rocky" | "centos" | "rhel")
+			if [[ $REDHAT_SUPPORT_PRODUCT_VERSION == "8" ]]; then
+				true
+			else
+				false
+			fi
+			;;
+		"ubuntu")
+			if [[ $OS_VERSION_ID == "20.04" ]]; then
+				true
+			else
+				false
+			fi
+			;;
+		*)
+			false
+			;;
+	esac
+}
+
+prepare_rocky_byoh_node() {
+	# packages
+	sudo dnf install -y iproute-tc
+
+	# SELinux
+	sudo sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+	sudo setenforce 0
+
+	# swap
+	sudo sed -i '/swap/d' /etc/fstab
+	sudo swapoff -a
+	
+	# modules
+	sudo cat << EOF | sudo tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+
+	sudo modprobe overlay
+	sudo modprobe br_netfilter
+
+	# sysctl
+	sudo cat << EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+	
+	sudo sysctl --system
+	
+	# systemd-resolved
+	sudo systemctl start systemd-resolved.service
+	sudo systemctl enable systemd-resolved.service
+	
+	# containerd
+	sudo dnf install dnf-utils -y
+	sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+	sudo dnf install -y containerd.io
+	
+	sudo mkdir -p /etc/containerd
+	sudo containerd config default | sudo tee /etc/containerd/config.toml
+	sudo sed -i "s/ SystemdCgroup = false/ SystemdCgroup = true/g" /etc/containerd/config.toml
+	
+	sudo systemctl enable containerd
+	sudo systemctl restart containerd
+	sudo systemctl status containerd
+	
+	# k8s binaries
+	cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+	
+	sudo yum install -y kubelet-$K8S_VERSION kubeadm-$K8S_VERSION kubectl-$K8S_VERSION --disableexcludes=kubernetes
+	
+	sudo dnf install yum-plugin-versionlock -y
+	sudo dnf versionlock kubelet kubeadm kubectl
+	
+	sudo systemctl enable kubelet.service
+	sudo systemctl start kubelet.service
+	sudo systemctl status kubelet.service
+}
+
+prepare_ubuntu_byoh_node() {
+	sudo apt-get install socat ebtables ethtool conntrack
+}
+
+prepare_byoh_node() {
+	sudo systemctl stop byoh-hostagent 2>&1 >/dev/null || true
+	sudo systemctl disable byoh-hostagent 2>&1 >/dev/null || true
+
+	sudo rm -rf /root/.byoh
+	sudo rm -f /etc/kubernetes/bootstrap-kubeconfig.conf
+	sudo rm -f /var/log/byoh-hostagent*.log
+	sudo rm -f /usr/local/bin/byoh-hostagent
+	sudo rm -f /etc/systemd/system/byoh-hostagent.service
+
+	echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts
+	sudo mkdir -p /etc/kubernetes
+	echo $BOOTSTRAP_KUBECONFIG | base64 -d | sudo tee /etc/kubernetes/bootstrap-kubeconfig.conf
+
+	case $OS_ID in
+		"rocky" | "centos" | "rhel")
+			prepare_rocky_byoh_node
+			BYOH_AGENT_OPTS+=" --skip-installation"
+			;;
+
+		"ubuntu" )
+			prepare_ubuntu_byoh_node
+			;;
+	esac
+}
+
+run_byoh_agent() {
+	sudo cp byoh-hostagent-linux-amd64 /usr/local/bin/byoh-hostagent
+	sudo chmod +x /usr/local/bin/byoh-hostagent
+
+	cat <<EOF | sudo tee /etc/systemd/system/byoh-hostagent.service
+[Unit]
+Description=byoh-hostagent: The BYOH Host Agent
+Documentation=https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/blob/main/docs/byoh_agent.md
+Wants=kubelet.target
+After=kubelet.target
+
+[Service]
+ExecStart=/usr/local/bin/byoh-hostagent \\
+          --bootstrap-kubeconfig /etc/kubernetes/bootstrap-kubeconfig.conf \\
+          --label role=${BYOH_ROLE} \\
+          ${BYOH_AGENT_OPTS}
+
+Restart=always
+StartLimitInterval=0
+RestartSec=10
+LimitNOFILE=65536
+User=root
+Group=root
+StandardOutput=append:/var/log/byoh-hostagent.log
+StandardError=append:/var/log/byoh-hostagent-error.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+	sudo systemctl daemon-reload
+
+	sudo systemctl enable byoh-hostagent.service
+	sudo systemctl start byoh-hostagent.service
+	sudo systemctl status byoh-hostagent.service
+}
+
+if [ -z "$1" ]
+then
+	echo "usage: $0 <Host Role: control-plane, tks or worker>"
+	exit 1
+fi
+
+BYOH_ROLE=$1
+BYOH_AGENT_OPTS="" # '-v 20' for debugging
+
+check_if_supported_os
+if [[ $? != 0 ]]; then
+	echo "This OS is not supported."
+	exit 1
+fi
+
+prepare_byoh_node
+run_byoh_agent
