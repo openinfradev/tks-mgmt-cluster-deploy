@@ -1,6 +1,13 @@
-TKS_RELEASE=v2.0.0-rc1
+TKS_RELEASE=main
 
-CAPI_INFRA_PROVIDER="aws" # aws or openstack
+BOOTSTRAP_CLUSTER_SERVER_IP="192.168.0.1"
+
+# "aws" or "byoh"
+TKS_ADMIN_CLUSTER_INFRA_PROVIDER="byoh"
+
+# Select the infrastructure provider to use (supports multiple selections)
+declare -a CAPI_INFRA_PROVIDERS=("byoh" "aws")
+
 # when 'aws' is an infrastructure provider
 AWS_REGION=ap-northeast-2
 AWS_ACCESS_KEY_ID=XXX_MUST_BE_FILLED
