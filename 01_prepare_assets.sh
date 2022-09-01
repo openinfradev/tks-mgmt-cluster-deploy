@@ -2,10 +2,13 @@
 
 set -e
 
-source common.sh
+source lib/common.sh
 
-K3S_ASSETS_URL="https://github.com/k3s-io/k3s/releases"
-K3S_ASSETS_FILES=(k3s k3s-airgap-images-amd64.tar)
+declare -a DOCKER_PKGS_UBUNTU=("containerd.io_1.6.7-1_amd64.deb" "docker-ce-cli_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-ce_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-compose-plugin_2.6.0~ubuntu-focal_amd64.deb")
+declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.7-3.1.el8.x86_64.rpm" "docker-ce-20.10.17-3.el8.x86_64.rpm" "docker-ce-cli-20.10.17-3.el8.x86_64.rpm" "docker-compose-plugin-2.6.0-3.el8.x86_64.rpm")
+KIND_ASSETS_URL="https://github.com/kubernetes-sigs/kind/releases"
+KIND_ASSETS_FILES=(kind-linux-amd64)
+KIND_VERSION="latest"
 CAPI_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api/releases"
 CAPI_ASSETS_FILES=(metadata.yaml bootstrap-components.yaml cluster-api-components.yaml clusterctl-linux-amd64 control-plane-components.yaml core-components.yaml)
 CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases"
@@ -20,9 +23,9 @@ ARGOCD_ASSETS_FILES=(argocd-linux-amd64)
 ASSETS_DIR="assets-`date "+%Y-%m-%d"`"
 
 github_get_latest_release() {
-  curl --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
-    grep '"tag_name":' |                                            # Get tag line
-    sed -E 's/.*"([^"]+)".*/\1/'                                    # Pluck JSON value
+	curl --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
+		grep '"tag_name":' |                                            # Get tag line
+		sed -E 's/.*"([^"]+)".*/\1/'                                    # Pluck JSON value
 }
 
 download_assets_from_github () {
@@ -33,11 +36,10 @@ download_assets_from_github () {
 	reponame=${url%/releases*}
 	reponame=${reponame##*.com/}
 
-	print_msg "Downloading from $reponame"
+	log_info "Downloading assets from $reponame"
 
-	if [ $version == "latest" ]
+	if [[ $version == "latest" ]]
 	then
-
 		tag=$(github_get_latest_release $reponame)
 	else
 		tag=$version
