@@ -64,3 +64,9 @@ argo submit --from wftmpl/tks-create-github-token-secret -n argo -p user=$GITHUB
 argo watch -n argo @latest
 print_msg "... done"
 
+print_msg "Add tks-admin cluster to argocd..."
+ARGOCD_SERVER=$(kubectl get node | grep -v NAME | head -n 1 | cut -d' ' -f1)
+ARGOCD_PORT=$(kubectl get svc -n argo argo-cd-argocd-server -o=jsonpath='{.spec.ports[0].nodePort}')
+CURRENT_CONTEXT=$(kubectl config current-context)
+argocd login --plaintext $ARGOCD_SERVER:$ARGOCD_PORT --username admin --password $ARGOCD_PASSWD
+argocd cluster add $CURRENT_CONTEXT --name tks-admin -y
