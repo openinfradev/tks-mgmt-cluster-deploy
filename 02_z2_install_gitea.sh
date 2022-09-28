@@ -14,7 +14,7 @@ sudo chmod -R 750 /var/lib/gitea/
 sudo mkdir -p /etc/gitea
 sudo chown root:$GROUP /etc/gitea
 sudo chmod 770 /etc/gitea
-cp -f app.ini.gitea.example /etc/gitea/app.ini
+cp -f templates/app.ini.gitea.example /etc/gitea/app.ini
 
 export GITEA_WORK_DIR=/var/lib/gitea/
 nohup ./gitea web -c /etc/gitea/app.ini 2>&1 1>gitea.log &

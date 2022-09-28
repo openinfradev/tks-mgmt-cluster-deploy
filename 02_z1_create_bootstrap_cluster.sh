@@ -2,13 +2,20 @@
 
 set -e
 
-source common.sh
+source lib/common.sh
 
-if [ -z "$1" ]
-  then
+if [ -z "$1" ]; then
     echo "usage: $0 <assets dir>"
     exit 1
 fi
+
+ASSETS_DIR=$1
+KIND_ASSETS_DIR="$1/kind/$(ls $1/kind | grep v)"
+
+check_if_supported_os
+
+# TODO: check if the bootstrap cluster already exist.
+rm -rf ~/.kube/config
 
 if [[ $(cat /etc/os-release  | awk -F= '/^ID=/{print $2}') != "ubuntu" ]]
 then
@@ -16,34 +23,35 @@ then
   exit 1
 fi
 
-ASSETS_DIR="$1/k3s/$(ls $1/k3s | grep v)"
+log_info "Installing Docker-ce"
+# TODO: install only when not installed
+case $OS_ID in
+	"rocky" | "centos" | "rhel")
+		sudo rpm -Uvh $ASSETS_DIR/docker-ce/*.rpm
+		;;
 
-print_msg "Creating bootstrap cluster"
+	"ubuntu" )
+		sudo dpkg -i $ASSETS_DIR/docker-ce/*.deb
+		;;
+esac
+sudo systemctl start docker
+sudo docker load -i $ASSETS_DIR/kind-node-image.tar.gz
 
-sudo mkdir -p /var/lib/rancher/k3s/agent/images/
-sudo cp $ASSETS_DIR/k3s-airgap-images-amd64.tar /var/lib/rancher/k3s/agent/images/
-sudo cp $ASSETS_DIR/k3s /usr/local/bin
-sudo chmod +x /usr/local/bin/k3s
+log_info "Creating bootstrap cluster"
+
+sudo cp $ASSETS_DIR/kubectl /usr/local/bin
+sudo chmod +x /usr/local/bin/kubectl
+sudo cp $KIND_ASSETS_DIR/kind-linux-amd64 /usr/local/bin
+sudo chmod +x /usr/local/bin/kind
 sudo cp $1/helm /usr/local/bin
 
-chmod +x $ASSETS_DIR/install.sh
-INSTALL_K3S_SKIP_DOWNLOAD=true INSTALL_K3S_EXEC="server --cluster-domain tks.bootstrap" $ASSETS_DIR/install.sh
-
-sleep 20
-while true
-do
-	node_count=$(sudo kubectl get no --kubeconfig /etc/rancher/k3s/k3s.yaml | grep master | wc -l)
-	if [ $node_count -eq 1 ]
-	then
-		break
-	fi
-	
-	sleep 10
-done
+export BOOTSTRAP_CLUSTER_SERVER_IP
+envsubst '${BOOTSTRAP_CLUSTER_SERVER_IP}' < ./templates/kind-config.yaml.template >output/kind-config.yaml
+kind create cluster --config=output/kind-config.yaml --image kindest/node:$KIND_NODE_IMAGE_TAG
 
 while true
 do
-	node_status=$(sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml get no -o=jsonpath='{.items[0].status.conditions[?(@.type == "Ready")].status}')
+	node_status=$(kubectl get no -o=jsonpath='{.items[0].status.conditions[?(@.type == "Ready")].status}')
 	if [ $node_status = "True" ]
 	then
 		break
@@ -52,9 +60,4 @@ do
 	sleep 10
 done
 
-[ -d ~/.kube ] || mkdir ~/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-sudo chown $USER:$USER ~/.kube/config
-chmod 600 ~/.kube/config
-
-print_msg "Bootstrap cluster created successfully. You can access bootstrap cluster using ~/.kube/config as a kubeconfig file"
+log_info "Bootstrap cluster created successfully. You can access bootstrap cluster using ~/.kube/config as a kubeconfig file"

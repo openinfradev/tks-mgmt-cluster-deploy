@@ -4,20 +4,19 @@
 
 set -e
 
-source common.sh
+source lib/common.sh
 
 export KUBECONFIG=~/.kube/config
 CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 
-export KUBECONFIG=kubeconfig_$CLUSTER_NAME
+export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 
-print_msg "Installing Keycloak..."
+log_info "Installing Keycloak..."
 
-argo submit --from wftmpl/install-admin-tools -p app_prefix=tks-admin -p revision=$TKS_RELEASE -n argo
+argo submit --from wftmpl/install-admin-tools -p app_prefix=tks-admin -p revision=$TKS_RELEASE -n argo --watch
 
-for ns in keycloak; do
-        for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do
-                kubectl wait --for=condition=Ready -n $ns --timeout=180s po/$po
-        done
-done
-print_msg "... done"
+sleep 30
+
+gum spin --spinner dot --title "Wait for all pods ready in keycloak namespace..." -- util/wait_for_all_pods_in_ns.sh keycloak
+
+log_info "... done"

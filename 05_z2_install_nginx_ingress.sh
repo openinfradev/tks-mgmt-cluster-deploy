@@ -2,20 +2,19 @@
 
 set -e
 
-source common.sh
+source lib/common.sh
 
 export KUBECONFIG=~/.kube/config
 CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
-export KUBECONFIG=kubeconfig_$CLUSTER_NAME
+export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 
-print_msg "Installing NGINX Ingress..."
+log_info "Installing NGINX Ingress..."
 helm upgrade --install ingress-nginx ingress-nginx \
   --repo https://kubernetes.github.io/ingress-nginx \
   --namespace ingress-nginx --create-namespace
 
-for ns in ingress-nginx; do
-	for po in $(kubectl get po -n $ns -o jsonpath='{.items[*].metadata.name}');do
-		kubectl wait --for=condition=Ready -n $ns --timeout=180s po/$po
-	done
-done
-print_msg "... done"
+sleep 10
+
+gum spin --spinner dot --title "Wait for all pods ready in ingress-nginx namespace..." -- util/wait_for_all_pods_in_ns.sh ingress-nginx
+
+log_info "... done"
