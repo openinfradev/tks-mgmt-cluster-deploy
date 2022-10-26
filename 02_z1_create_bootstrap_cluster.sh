@@ -17,17 +17,13 @@ check_if_supported_os
 # TODO: check if the bootstrap cluster already exist.
 rm -rf ~/.kube/config
 
-if [[ $(cat /etc/os-release  | awk -F= '/^ID=/{print $2}') != "ubuntu" ]]
-then
-  echo "Only Ubuntu distributions are supported."
-  exit 1
-fi
+check_if_supported_os
 
 log_info "Installing Docker-ce"
 # TODO: install only when not installed
 case $OS_ID in
 	"rocky" | "centos" | "rhel")
-		sudo rpm -Uvh $ASSETS_DIR/docker-ce/*.rpm
+		sudo dnf localinstall $ASSETS_DIR/docker-ce/*.rpm
 		;;
 
 	"ubuntu" )

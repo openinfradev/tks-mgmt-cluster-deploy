@@ -5,7 +5,7 @@ set -e
 source lib/common.sh
 
 declare -a DOCKER_PKGS_UBUNTU=("containerd.io_1.6.7-1_amd64.deb" "docker-ce-cli_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-ce_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-compose-plugin_2.6.0~ubuntu-focal_amd64.deb")
-declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.7-3.1.el8.x86_64.rpm" "docker-ce-20.10.17-3.el8.x86_64.rpm" "docker-ce-cli-20.10.17-3.el8.x86_64.rpm" "docker-compose-plugin-2.6.0-3.el8.x86_64.rpm")
+declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.7-3.1.el8.x86_64.rpm" "docker-ce-20.10.17-3.el8.x86_64.rpm" "docker-ce-cli-20.10.17-3.el8.x86_64.rpm" "docker-ce-rootless-extras-20.10.17-3.el8.x86_64.rpm " "docker-compose-plugin-2.6.0-3.el8.x86_64.rpm")
 KIND_ASSETS_URL="https://github.com/kubernetes-sigs/kind/releases"
 KIND_ASSETS_FILES=(kind-linux-amd64)
 KIND_VERSION="latest"
@@ -94,7 +94,8 @@ cd - >/dev/null
 log_info "Installing docker packages"
 case $OS_ID in
 	"rocky" | "centos" | "rhel")
-		sudo rpm -Uvh $ASSETS_DIR/docker-ce/*.rpm
+		sudo dnf install -y container-selinux iptables libcgroup fuse-overlayfs slirp4netns
+		sudo dnf localinstall $ASSETS_DIR/docker-ce/*.rpm
 		;;
 
 	"ubuntu" )

@@ -9,7 +9,7 @@ check_if_supported_os() {
 
         case $OS_ID in
                 "rocky" | "centos" | "rhel")
-                        if [[ $REDHAT_SUPPORT_PRODUCT_VERSION == "8" ]]; then
+                        if [[ $OS_REDHAT_SUPPORT_PRODUCT_VERSION == "8" ]]; then
                                 true
                         else
                                 false
