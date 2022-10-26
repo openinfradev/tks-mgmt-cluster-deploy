@@ -1,11 +1,11 @@
-ARGOWF_VERSION="v3.3.9"
-ARGOCD_VERSION="v2.4.10"
-ARGOCD_CHART_VERSION="4.10.7"
+ARGOWF_VERSION="v3.4.2"
+ARGOCD_VERSION="v2.4.11"
+ARGOCD_CHART_VERSION="4.10.9"
 
 CAPI_RELEASE="v1beta1"
 case $CAPI_RELEASE in
         "v1beta1")
-                CAPI_VERSION="v1.2.1"
+                CAPI_VERSION="v1.2.4"
                 CAPA_VERSION="v1.5.0"
                 BYOH_VERSION="v0.3.0"
                 ;;
