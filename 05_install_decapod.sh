@@ -46,7 +46,6 @@ kubectl create cm tks-proto -n argo --from-file=$ASSET_DIR/tks-proto/tks_pb_pyth
 log_info "... done"
 
 log_info "Creating aws secret..."
-# TODO: run if only capa
 if [[ " ${CAPI_INFRA_PROVIDERS[*]} " =~ " aws " ]]; then
 	argo submit --from wftmpl/tks-create-aws-conf-secret -n argo -p aws_access_key_id=$AWS_ACCESS_KEY_ID -p aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --watch 
 fi
@@ -58,7 +57,7 @@ argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-s
 log_info "Run tks-create-github-token-secret workflow..."
 argo submit --from wftmpl/tks-create-github-token-secret -n argo -p user=$GITHUB_USERNAME -p token=$GITHUB_TOKEN --watch
 
-print_msg "Add tks-admin cluster to argocd..."
+log_info "Add tks-admin cluster to argocd..."
 ARGOCD_SERVER=$(kubectl get node | grep -v NAME | head -n 1 | cut -d' ' -f1)
 ARGOCD_PORT=$(kubectl get svc -n argo argo-cd-argocd-server -o=jsonpath='{.spec.ports[0].nodePort}')
 CURRENT_CONTEXT=$(kubectl config current-context)
