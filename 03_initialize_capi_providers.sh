@@ -36,6 +36,7 @@ EOF
 
 log_info "Installing Cluster API providers"
 
+mkdir -p ~/.cluster-api
 cp clusterctl.yaml ~/.cluster-api/
 
 CAPI_NAMESPACE="cert-manager capi-system capi-kubeadm-bootstrap-system capi-kubeadm-control-plane-system"
