@@ -76,7 +76,7 @@ sleep 3
 
 kubectl get bootstrapkubeconfig bootstrap-kubeconfig-$HOSTNAME -n default -o=jsonpath='{.status.bootstrapKubeconfigData}' > output/bootstrap-kubeconfig-$HOSTNAME.conf
 
-export KIND_PORT=$(docker inspect kind-control-plane -f '{{ $published := index .NetworkSettings.Ports "6443/tcp" }}{{ range $published }}{{ .HostPort }}{{ end }}')
+export KIND_PORT=$(sudo docker inspect kind-control-plane -f '{{ $published := index .NetworkSettings.Ports "6443/tcp" }}{{ range $published }}{{ .HostPort }}{{ end }}')
 sed -i 's/    server\:.*/    server\: https\:\/\/'"$BOOTSTRAP_CLUSTER_SERVER_IP:$KIND_PORT"'/g' output/bootstrap-kubeconfig-$HOSTNAME.conf
 
 bootstrap_kubeconfig=$(cat output/bootstrap-kubeconfig-$HOSTNAME.conf | base64 -w 0)

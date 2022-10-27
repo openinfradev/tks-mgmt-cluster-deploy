@@ -5,10 +5,10 @@ set -e
 source lib/common.sh
 
 declare -a DOCKER_PKGS_UBUNTU=("containerd.io_1.6.7-1_amd64.deb" "docker-ce-cli_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-ce_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-compose-plugin_2.6.0~ubuntu-focal_amd64.deb")
-declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.7-3.1.el8.x86_64.rpm" "docker-ce-20.10.17-3.el8.x86_64.rpm" "docker-ce-cli-20.10.17-3.el8.x86_64.rpm" "docker-compose-plugin-2.6.0-3.el8.x86_64.rpm")
+declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.7-3.1.el8.x86_64.rpm" "docker-ce-20.10.17-3.el8.x86_64.rpm" "docker-ce-cli-20.10.17-3.el8.x86_64.rpm" "docker-ce-rootless-extras-20.10.17-3.el8.x86_64.rpm " "docker-compose-plugin-2.6.0-3.el8.x86_64.rpm")
 KIND_ASSETS_URL="https://github.com/kubernetes-sigs/kind/releases"
 KIND_ASSETS_FILES=(kind-linux-amd64)
-KIND_VERSION="latest"
+KIND_VERSION="v0.16.0"
 CAPI_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api/releases"
 CAPI_ASSETS_FILES=(metadata.yaml bootstrap-components.yaml cluster-api-components.yaml clusterctl-linux-amd64 control-plane-components.yaml core-components.yaml)
 CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases"
@@ -20,8 +20,8 @@ ARGOWF_ASSETS_FILES=(argo-linux-amd64.gz)
 ARGOCD_ASSETS_URL="https://github.com/argoproj/argo-cd/releases"
 ARGOCD_ASSETS_FILES=(argocd-linux-amd64)
 GUM_ASSETS_URL="https://github.com/charmbracelet/gum/releases"
-GUM_ASSETS_FILES=(gum_0.5.0_linux_x86_64.tar.gz)
-GUM_VERSION="latest"
+GUM_ASSETS_FILES=(gum_0.7.0_linux_x86_64.tar.gz)
+GUM_VERSION="v0.7.0"
 
 ASSETS_DIR="assets-`date "+%Y-%m-%d"`"
 
@@ -94,7 +94,8 @@ cd - >/dev/null
 log_info "Installing docker packages"
 case $OS_ID in
 	"rocky" | "centos" | "rhel")
-		sudo rpm -Uvh $ASSETS_DIR/docker-ce/*.rpm
+		sudo dnf install -y container-selinux iptables libcgroup fuse-overlayfs slirp4netns
+		sudo dnf localinstall $ASSETS_DIR/docker-ce/*.rpm
 		;;
 
 	"ubuntu" )
@@ -136,8 +137,7 @@ rm -rf helm.tar.gz linux-amd64
 
 # TODO: use associate arrays..
 log_info "Downloading TACO Helm chart source"
-#git clone --quiet https://github.com/openinfradev/helm-charts.git $ASSETS_DIR/taco-helm -b $TKS_RELEASE
-git clone --quiet https://github.com/openinfradev/helm-charts.git $ASSETS_DIR/taco-helm -b byoh_v0.3.0
+git clone --quiet https://github.com/openinfradev/helm-charts.git $ASSETS_DIR/taco-helm -b $TKS_RELEASE
 
 log_info "Downloading TACO Helm Repo"
 git clone --quiet https://github.com/openinfradev/helm-repo.git $ASSETS_DIR/helm-repo -b $TKS_RELEASE

@@ -17,17 +17,13 @@ check_if_supported_os
 # TODO: check if the bootstrap cluster already exist.
 rm -rf ~/.kube/config
 
-if [[ $(cat /etc/os-release  | awk -F= '/^ID=/{print $2}') != "ubuntu" ]]
-then
-  echo "Only Ubuntu distributions are supported."
-  exit 1
-fi
+check_if_supported_os
 
 log_info "Installing Docker-ce"
 # TODO: install only when not installed
 case $OS_ID in
 	"rocky" | "centos" | "rhel")
-		sudo rpm -Uvh $ASSETS_DIR/docker-ce/*.rpm
+		sudo dnf localinstall $ASSETS_DIR/docker-ce/*.rpm
 		;;
 
 	"ubuntu" )
@@ -41,13 +37,16 @@ log_info "Creating bootstrap cluster"
 
 sudo cp $ASSETS_DIR/kubectl /usr/local/bin
 sudo chmod +x /usr/local/bin/kubectl
-sudo cp $KIND_ASSETS_DIR/kind-linux-amd64 /usr/local/bin
+sudo cp $KIND_ASSETS_DIR/kind-linux-amd64 /usr/local/bin/kind
 sudo chmod +x /usr/local/bin/kind
 sudo cp $1/helm /usr/local/bin
 
 export BOOTSTRAP_CLUSTER_SERVER_IP
 envsubst '${BOOTSTRAP_CLUSTER_SERVER_IP}' < ./templates/kind-config.yaml.template >output/kind-config.yaml
-kind create cluster --config=output/kind-config.yaml --image kindest/node:$KIND_NODE_IMAGE_TAG
+sudo /usr/local/bin/kind create cluster --config=output/kind-config.yaml --image kindest/node:$KIND_NODE_IMAGE_TAG
+mkdir -p ~/.kube
+sudo cp /root/.kube/config ~/.kube
+sudo chown $USER:$USER ~/.kube/config
 
 while true
 do
