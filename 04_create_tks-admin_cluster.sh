@@ -53,7 +53,7 @@ log_info  "Installing kubernetes addons for network and stroage"
 helm upgrade -i k8s-addons $ASSET_DIR/taco-helm/kubernetes-addons $HELM_VALUE_K8S_ADDONS
 case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
 	"aws")
-		helm upgrade -i aws-ebs-csi-driver --namespace kube-system $ASSET_DIR/aws-ebs-csi-driver/aws-ebs-csi-driver
+		helm upgrade -i aws-ebs-csi-driver --namespace kube-system $ASSET_DIR/aws-ebs-csi-driver-helm/aws-ebs-csi-driver
 		;;
 
 	"byoh")
