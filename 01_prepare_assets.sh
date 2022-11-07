@@ -28,7 +28,7 @@ GUM_VERSION="v0.7.0"
 # Git repos
 # "repo_url,tag/branch,dest_dir"
 git_repos=("https://github.com/openinfradev/helm-charts.git,${TKS_RELEASE},taco-helm")
-git_repos+=("https://github.com/openinfradev/helm-repo.git,${TKS_RELEASE},helm_repo")
+git_repos+=("https://github.com/openinfradev/helm-repo.git,${TKS_RELEASE},taco-helm-repo")
 git_repos+=("https://github.com/openinfradev/decapod-bootstrap,${TKS_RELEASE},decapod-bootstrap")
 git_repos+=("https://github.com/openinfradev/decapod-flow,${TKS_RELEASE},decapod-flow")
 git_repos+=("https://github.com/openinfradev/tks-flow,${TKS_RELEASE},tks-flow")
@@ -108,7 +108,7 @@ download_helm_charts() {
 		version=$(echo $chart | awk -F',' '{print $3}')
 		dest_dir=$(echo $chart | awk -F',' '{print $4}')
 
-		if [ -z $name ] || [ -z $repo] || [ -z $version] || [ -z $dest_dir]; then
+		if [ -z $name ] || [ -z $repo ] || [ -z $version ] || [ -z $dest_dir ]; then
 			log_error "wrong helm chart"
 		fi
 
@@ -123,7 +123,7 @@ pull_helm_images() {
 		chart_dir=$(echo $chart | awk -F',' '{print $2}')
 		value_path=$(echo $chart | awk -F',' '{print $3}')
 
-		if [ -z $name ] || [ -z $chart_dir] || [ -z $value_path]; then
+		if [ -z $name ] || [ -z $chart_dir ] || [ -z $value_path ]; then
 			log_error "wrong helm chart for image"
 		fi
 
@@ -138,7 +138,7 @@ pull_misc_images() {
 		image=$(echo $chart | awk -F',' '{print $1}')
 		tag=$(echo $chart | awk -F',' '{print $2}')
 
-		if [ -z $image ] || [ -z $tag]; then
+		if [ -z $image ] || [ -z $tag ]; then
 			log_error "wrong container image"
 		fi
 
@@ -267,5 +267,9 @@ do
 	esac
 done
 cd - >/dev/null
+
+log_info "call render.sh and download helm charts"
+sudo ./util/render.sh
+./util/download_helm_charts.py /tmp/hr-manifests ${ASSETS_DIR}/decapod-helm
 
 log_info "...Done"
