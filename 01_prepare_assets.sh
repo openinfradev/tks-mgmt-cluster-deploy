@@ -268,4 +268,8 @@ do
 done
 cd - >/dev/null
 
+log_info "call render.sh and download helm charts"
+./util/render.sh
+python ./util/download_helm_charts.py /tmp/hr-manifests ${ASSETS_DIR}/charts
+
 log_info "...Done"
