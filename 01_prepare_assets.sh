@@ -268,4 +268,8 @@ do
 done
 cd - >/dev/null
 
+log_info "call render.sh and download helm charts"
+sudo ./util/render.sh
+./util/download_helm_charts.py /tmp/hr-manifests ${ASSETS_DIR}/decapod-helm
+
 log_info "...Done"
