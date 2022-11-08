@@ -276,13 +276,14 @@ log_info "download helm charts from rendered decapod manifests"
 
 log_info "download docker images from rendered decapod manifests"
 [ ! -d /tmp/docker-images/ ] && mkdir /tmp/docker-images/
+cp util/*.docker-images /tmp/docker-images/
 [ ! -d ${ASSETS_DIR}/decapod-image/ ] && mkdir ${ASSETS_DIR}/decapod-image/
 for manifest in `ls /tmp/hr-manifests/*-manifest.yaml`
 do
 	./util/download_container_images.py $manifest /tmp/docker-images
 done
 
-for image in `cat /tmp/docker-images/*-manifest.yaml.docker-images| sort | uniq`
+for image in `cat /tmp/docker-images/*-manifest.yaml.docker-images | grep -v "^#" | sort | uniq`
 do
 	sudo docker pull ${image}
 	filename=${image/\//_}
