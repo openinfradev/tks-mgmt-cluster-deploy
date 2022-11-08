@@ -38,7 +38,7 @@ for i in ${site_list}
 do
   echo "Starting build manifests for '$i' site"
 
-  for app in `ls $i/`
+  for app in `ls $i/ | grep -v openstack`
   do
     output="decapod-base-yaml/$app/$i/$app-manifest.yaml"
     mkdir decapod-base-yaml/$app/$i
