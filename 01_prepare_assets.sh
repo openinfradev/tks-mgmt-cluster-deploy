@@ -285,8 +285,8 @@ done
 
 for image in `cat /tmp/docker-images/*-manifest.yaml.docker-images | grep -v "^#" | sort | uniq`
 do
-        ftemp=${image/\//~}
-        filename=${ftemp/\//~}
+        ftemp=${image/\//\~}
+        filename=${ftemp/\//\~}
         echo $filename
         if [ ! -f "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz" ]
         then
