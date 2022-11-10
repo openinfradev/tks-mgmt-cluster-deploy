@@ -285,14 +285,14 @@ done
 
 for image in `cat /tmp/docker-images/*-manifest.yaml.docker-images | grep -v "^#" | sort | uniq`
 do
-        ftemp=${image/\//~}                                                                                                                                                                 │···
-        filename=${ftemp/\//~}                                                                                                                                                              │···
-        echo $filename                                                                                                                                                                      │···
-        if [ ! -f "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz" ]                                                                                                                    │···
-        then                                                                                                                                                          │···
+        ftemp=${image/\//~}
+        filename=${ftemp/\//~}
+        echo $filename
+        if [ ! -f "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz" ]
+        then
                 sudo docker pull ${image}
-		sudo docker save ${image} |gzip > "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz"                                                                                      │···
-        fi                                                               
+		sudo docker save ${image} |gzip > "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz" 
+	fi
 done
 
 log_info "...Done"
