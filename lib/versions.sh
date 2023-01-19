@@ -5,9 +5,9 @@ ARGOCD_CHART_VERSION="4.10.9"
 CAPI_RELEASE="v1beta1"
 case $CAPI_RELEASE in
         "v1beta1")
-                CAPI_VERSION="v1.2.4"
-                CAPA_VERSION="v1.5.0"
-                BYOH_VERSION="v0.3.0"
+                CAPI_VERSION="v1.3.2"
+                CAPA_VERSION="v2.0.2"
+                BYOH_VERSION="v0.3.1"
                 ;;
 esac
 
