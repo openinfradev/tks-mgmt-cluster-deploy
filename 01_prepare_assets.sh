@@ -22,8 +22,11 @@ ARGOWF_ASSETS_FILES=(argo-linux-amd64.gz)
 ARGOCD_ASSETS_URL="https://github.com/argoproj/argo-cd/releases"
 ARGOCD_ASSETS_FILES=(argocd-linux-amd64)
 GUM_ASSETS_URL="https://github.com/charmbracelet/gum/releases"
-GUM_ASSETS_FILES=(gum_0.7.0_linux_x86_64.tar.gz)
-GUM_VERSION="v0.7.0"
+GUM_ASSETS_FILES=(gum_0.9.0_linux_x86_64.tar.gz)
+GUM_VERSION="v0.9.0"
+GITEA_ASSETS_URL="https://github.com/go-gitea/gitea/releases"
+GITEA_ASSETS_FILES=(gitea-1.18.1-linux-amd64)
+GITEA_VERSION="v1.8.1"
 
 # Git repos
 # "repo_url,tag/branch,dest_dir"
@@ -245,11 +248,6 @@ pull_workflow_images tks-flow
 
 log_info "Downloading kubectl"
 curl -sL -o $ASSETS_DIR/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-
-log_info "Downloading gitea"
-curl -sL -o $ASSETS_DIR/gitea https://dl.gitea.io/gitea/1.17.3/gitea-1.17.3-linux-amd64
-chmod +x $ASSETS_DIR/gitea
-
 
 cd $ASSETS_DIR
 [ ! -L bootstrap-kubeadm ] && ln -s cluster-api bootstrap-kubeadm
