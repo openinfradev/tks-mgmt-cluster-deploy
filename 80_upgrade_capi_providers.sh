@@ -10,10 +10,13 @@ if [ -z "$1" ]
     exit 1
 fi
 
-log_info "Preparing Cluster API providers initilizaiton"
+log_info "Preparing to upgrade Cluster API providers"
 
 sudo cp $1/cluster-api/$CAPI_VERSION/clusterctl-linux-amd64 /usr/local/bin/clusterctl
 sudo chmod +x /usr/local/bin/clusterctl
+clusterctl version
+
+gum confirm "Is it the same version ($CAPI_VERSION) you want to use?" || exit 1
 
 cat > clusterctl.yaml <<EOF
 providers:
@@ -34,12 +37,14 @@ providers:
     type: "InfrastructureProvider"
 EOF
 
-log_info "Installing Cluster API providers"
-
 mkdir -p ~/.cluster-api
 cp clusterctl.yaml ~/.cluster-api/
 
-CAPI_NAMESPACE="cert-manager capi-system capi-kubeadm-bootstrap-system capi-kubeadm-control-plane-system"
+log_info "Identifying possible targets for upgrades"
+clusterctl upgrade plan
+
+gum confirm "Are you sure you want to upgrade cluster api providers?" || exit 1
+log_info "Applying new versions of Cluster API components"
 
 for provider in ${CAPI_INFRA_PROVIDERS[@]}
 do
@@ -54,15 +59,11 @@ do
 
 			export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 			export EXP_MACHINE_POOL=true
-			
-			CAPI_NAMESPACE+=" $provider-system"
 			;;
 		"byoh")
-			CAPI_NAMESPACE+=" $provider-system"
 			;;
 	esac
 done
 
-gum spin --spinner dot --title "Waiting for providers to be installed..." -- clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}") --wait-providers
-
+clusterctl upgrade apply --contract v1beta1
 log_info "...Done"
