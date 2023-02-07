@@ -54,8 +54,8 @@ log_info "Run prepare-argocd workflow..."
 ARGOCD_PASSWD=$(kubectl -n argo get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-server.argo.svc:80 -p argo_password=$ARGOCD_PASSWD --watch
 
-log_info "Run tks-create-github-token-secret workflow..."
-argo submit --from wftmpl/tks-create-github-token-secret -n argo -p user=$GITHUB_USERNAME -p token=$GITHUB_TOKEN --watch
+log_info "Create a Git service token secret..."
+argo submit --from wftmpl/tks-create-git-svc-token-secret -n argo -p user=$GIT_SVC_USERNAME -p token=$GIT_SVC_TOKEN --watch
 
 log_info "Add tks-admin cluster to argocd..."
 ARGOCD_SERVER=$(kubectl get node | grep -v NAME | head -n 1 | cut -d' ' -f1)
