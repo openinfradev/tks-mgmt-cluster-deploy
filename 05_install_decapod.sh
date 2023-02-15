@@ -47,7 +47,7 @@ log_info "... done"
 
 log_info "Creating aws secret..."
 if [[ " ${CAPI_INFRA_PROVIDERS[*]} " =~ " aws " ]]; then
-	argo submit --from wftmpl/tks-create-aws-conf-secret -n argo -p aws_access_key_id=$AWS_ACCESS_KEY_ID -p aws_secret_access_key=$AWS_SECRET_ACCESS_KEY --watch 
+	argo submit --from wftmpl/tks-create-aws-conf-secret -n argo -p aws_access_key_id=$AWS_ACCESS_KEY_ID -p aws_secret_access_key=$AWS_SECRET_ACCESS_KEY -p aws_account_id=$AWS_ACCOUNT_ID --watch
 fi
 
 log_info "Run prepare-argocd workflow..."
