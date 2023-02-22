@@ -55,7 +55,7 @@ ARGOCD_PASSWD=$(kubectl -n argo get secret argocd-initial-admin-secret -o jsonpa
 argo submit --from wftmpl/prepare-argocd -n argo -p argo_server=argo-cd-argocd-server.argo.svc:80 -p argo_password=$ARGOCD_PASSWD --watch
 
 log_info "Create a Git service token secret..."
-argo submit --from wftmpl/tks-create-git-svc-token-secret -n argo -p user=$GIT_SVC_USERNAME -p token=$GIT_SVC_TOKEN --watch
+argo submit --from wftmpl/tks-create-git-svc-token-secret -n argo -p user=$GIT_SVC_USERNAME -p token=$GIT_SVC_TOKEN -p git_svc_type=$GIT_SVC_TYPE -p git_svc_url=$GIT_SVC_URL --watch
 
 log_info "Add tks-admin cluster to argocd..."
 ARGOCD_SERVER=$(kubectl get node | grep -v NAME | head -n 1 | cut -d' ' -f1)
