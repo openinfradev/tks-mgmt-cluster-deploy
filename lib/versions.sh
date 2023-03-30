@@ -1,14 +1,16 @@
-ARGOWF_VERSION="v3.4.2"
-ARGOCD_VERSION="v2.4.11"
-ARGOCD_CHART_VERSION="4.10.9"
+ARGOWF_VERSION="v3.4.8"
+ARGOCD_VERSION="v2.7.8"
+ARGOCD_CHART_VERSION="5.41.1"
+ARGOCD_APPS_CHART_VERSION="1.3.0"
 
 CAPI_RELEASE="v1beta1"
 case $CAPI_RELEASE in
         "v1beta1")
-                CAPI_VERSION="v1.3.2"
-                CAPA_VERSION="v2.0.2"
-                BYOH_VERSION="v0.3.1"
+                CAPI_VERSION="v1.5.0"
+                CAPA_VERSION="v2.2.1"
+                BYOH_VERSION="v0.4.0"
+                BYOH_TKS_VERSION="dev24"
                 ;;
 esac
 
-KIND_NODE_IMAGE_TAG="v1.24.6@sha256:97e8d00bc37a7598a0b32d1fabd155a96355c49fa0d4d4790aab0f161bf31be1"
+KIND_NODE_IMAGE_TAG="v1.25.11@sha256:227fa11ce74ea76a0474eeefb84cb75d8dad1b08638371ecf0e86259b35be0c8"

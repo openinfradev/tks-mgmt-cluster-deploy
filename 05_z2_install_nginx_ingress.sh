@@ -4,8 +4,6 @@ set -e
 
 source lib/common.sh
 
-export KUBECONFIG=~/.kube/config
-CLUSTER_NAME=$(kubectl get cluster -o=jsonpath='{.items[0].metadata.name}')
 export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 
 log_info "Installing NGINX Ingress..."

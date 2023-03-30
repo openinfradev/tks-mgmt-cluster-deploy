@@ -1,0 +1,11 @@
+global:
+  imageRegistry: harbor-cicd.taco-cat.xyz/tks
+  storageClass: taco-storage
+  postgresql:
+    auth:
+      postgresPassword: ${DATABASE_PASSWORD}
+      database: gitea
+
+image:
+  repository: bitnami-postgresql
+  tag: 15.3.0-debian-11-r17

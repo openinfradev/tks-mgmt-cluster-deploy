@@ -1,0 +1,35 @@
+ingress:
+  hosts:
+    - host: localhost
+      paths:
+        - path: /
+          pathType: Prefix
+
+persistence:
+  size: 40Gi
+  storageClass: taco-storage
+
+gitea:
+  admin:
+    username: ${GITEA_ADMIN_USER}
+    password: ${GITEA_ADMIN_PASSWORD}
+    email: "tks-dev@tks"
+
+  config:
+    server:
+      HTTP_PORT: 3000
+      ROOT_URL:  http://localhost:3000/
+    service:
+      DISABLE_REGISTRATION: true
+    database:
+      DB_TYPE: postgres
+      HOST: ${DATABASE_HOST}
+      NAME: gitea
+      USER: ${DATABASE_USER}
+      PASSWD: ${DATABASE_PASSWORD}
+      SCHEMA: public
+    webhook:
+      ALLOWED_HOST_LIST: "*"
+
+postgresql:
+  enabled: false

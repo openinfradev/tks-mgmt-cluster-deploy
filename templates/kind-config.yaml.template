@@ -1,4 +1,13 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: ClusterConfiguration
+    apiServer:
+      certSANs:
+      - ${BOOTSTRAP_CLUSTER_SERVER_IP}
 networking:
-  apiServerAddress: "${BOOTSTRAP_CLUSTER_SERVER_IP}"
+  apiServerAddress: "0.0.0.0"
+  apiServerPort: 6443

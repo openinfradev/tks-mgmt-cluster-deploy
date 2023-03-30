@@ -1,7 +1,7 @@
 #!/bin/bash
-set -ex
+set -e
 
-K8S_VERSION=1.23.5
+K8S_VERSION=1.25.11
 
 BOOTSTRAP_KUBECONFIG="${bootstrap_kubeconfig}"
 
@@ -10,7 +10,7 @@ check_if_supported_os() {
 
 	case $OS_ID in
 		"rocky" | "centos" | "rhel")
-			if [[ $OS_REDHAT_SUPPORT_PRODUCT_VERSION == "8" ]]; then
+                        if [[ ${OS_REDHAT_SUPPORT_PRODUCT_VERSION:0:1} == "8" ]]; then
 				true
 			else
 				false
@@ -112,14 +112,16 @@ prepare_byoh_node() {
 	sudo rm -f /usr/local/bin/byoh-hostagent
 	sudo rm -f /etc/systemd/system/byoh-hostagent.service
 
+	sudo sed -i "/127.0.0.1 $(hostname)/d" /etc/hosts
 	echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts
 	sudo mkdir -p /etc/kubernetes
 	echo $BOOTSTRAP_KUBECONFIG | base64 -d | sudo tee /etc/kubernetes/bootstrap-kubeconfig.conf
 
 	case $OS_ID in
 		"rocky" | "centos" | "rhel")
-			prepare_rocky_byoh_node
-			BYOH_AGENT_OPTS+=" --skip-installation"
+			#prepare_rocky_byoh_node
+			#BYOH_AGENT_OPTS+=" --skip-installation"
+			:
 			;;
 
 		"ubuntu" )
@@ -142,8 +144,8 @@ After=kubelet.target
 [Service]
 ExecStart=/usr/local/bin/byoh-hostagent \\
           --bootstrap-kubeconfig /etc/kubernetes/bootstrap-kubeconfig.conf \\
-          --label role=${BYOH_ROLE} \\
-          ${BYOH_AGENT_OPTS}
+          ${BYOH_AGENT_OPTS} \\
+          --label role=${BYOH_ROLE}
 
 Restart=always
 StartLimitInterval=0
@@ -174,11 +176,13 @@ fi
 BYOH_ROLE=$1
 BYOH_AGENT_OPTS="" # '-v 20' for debugging
 
+set +e
 check_if_supported_os
 if [[ $? != 0 ]]; then
 	echo "This OS is not supported."
 	exit 1
 fi
+set -e
 
 prepare_byoh_node
 run_byoh_agent

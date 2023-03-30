@@ -33,7 +33,7 @@ providers:
     url: "file://localhost$(realpath $1)/infrastructure-aws/$CAPA_VERSION/infrastructure-components.yaml"
     type: "InfrastructureProvider"
   - name: "byoh"
-    url: "file://localhost$(realpath $1)/infrastructure-byoh/$CAPO_VERSION/infrastructure-components.yaml"
+    url: "file://localhost$(realpath $1)/infrastructure-byoh/$BYOH_VERSION/infrastructure-components.yaml"
     type: "InfrastructureProvider"
 EOF
 
