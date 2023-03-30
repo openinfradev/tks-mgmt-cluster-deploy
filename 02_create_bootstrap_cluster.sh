@@ -47,6 +47,7 @@ sudo /usr/local/bin/kind create cluster --config=output/kind-config.yaml --image
 mkdir -p ~/.kube
 sudo cp /root/.kube/config ~/.kube
 sudo chown $USER:$USER ~/.kube/config
+sed -i "s/0.0.0.0:6443/$BOOTSTRAP_CLUSTER_SERVER_IP:6443/g" ~/.kube/config
 
 while true
 do

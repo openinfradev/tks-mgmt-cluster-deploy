@@ -4,13 +4,13 @@ cluster:
   - 10.233.64.0/18
   serviceCidrBlocks:
   - 10.233.0.0/18
-  kubernetesVersion: v1.23.5
+  kubernetesVersion: v1.25.9
 
 kubeVip:
   enabled: false
 
 byoCluster:
-  bundleLookupBaseRegistry: projects.registry.vmware.com/cluster_api_provider_bringyourownhost
+  bundleLookupBaseRegistry: harbor.taco-cat.xyz/cluster_api_provider_bringyourownhost
   controlPlaneEndpoint:
     host: 192.168.2.1
     port: 6443
@@ -24,14 +24,29 @@ api:
   version: v1beta1
 
 kubeadmControlPlane:
-  replicas: 1
+  replicas: 3
+  selector:
+    matchLabels:
+      role: admin-control-plane
+  clusterConfiguration:
+    apiServer:
+      certSANs:
+      - localhost
+      - 127.0.0.1
+      - 0.0.0.0
+      extraArgs:
+        oidc-client-id: tks-admin
+        oidc-groups-claim: groups
+        oidc-issuer-url: https://keycloak.domain.com/auth/realms/tks
+        oidc-username-claim: preferred_username
+        oidc-username-prefix: "-"
 
 machineDeployment:
 - name: tks
   replicas: 1
   selector:
     matchLabels:
-      role: tks
+      role: admin-tks
   labels:
     servicemesh: enabled
     taco-egress-gateway: enabled
@@ -42,7 +57,7 @@ machineDeployment:
 #  replicas: 1
 #  selector:
 #    matchLabels:
-#      role: worker
+#      role: admin-orker
 
 nameOverride: ""
 fullnameOverride: ""

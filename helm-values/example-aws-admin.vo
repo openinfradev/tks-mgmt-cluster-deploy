@@ -1,33 +1,38 @@
 # aws ssh key name
-sshKeyName: example-sshkey
+sshKeyName: tks-seoul
 
 cluster:
-  name: tks-admin-example
+  name: tks-admin-ft
   region: ap-northeast-2
-  kubernetesVersion: v1.22.8
-  podCidrBlocks:
-  - 192.168.0.0/16
+  eksEnabled: true
+  eksAddons:
+  - name: "aws-ebs-csi-driver"
+    version: "v1.18.0-eksbuild.1"
+    conflictResolution: "overwrite"
+  - name: "vpc-cni"
+    conflictResolution: "overwrite"
+    version: "v1.12.6-eksbuild.2"
+  kubernetesVersion: v1.25.9
   bastion:
     enabled: true
-    instanceType: t3.micro
-  baseOS: ubuntu-20.04
-
-kubeadmControlPlane:
-  replicas: 3
-  controlPlaneMachineType: t3.large
-  rootVolume:
-    size: 20
-    type: gp2
+    instanceType: t3.medium
+    disableIngressRules: true
 
 machinePool:
-- name: tks-example-worker
+- name: taco
   machineType: t3.2xlarge
   replicas: 3
-  minSize: 1
-  maxSize: 10
+  minSize: 3
+  maxSize: 3
   rootVolume:
     size: 200
     type: gp2
-  subnets: []
   labels:
     taco-tks: enabled
+    taco-lma: enabled
+    servicemesh: enabled
+    taco-ingress-gateway: enabled
+  roleAdditionalPolicies:
+  - "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+  - "arn:aws:iam::aws:policy/AmazonSESFullAccess"
+  - "arn:aws:iam::aws:policy/AmazonS3FullAccess"

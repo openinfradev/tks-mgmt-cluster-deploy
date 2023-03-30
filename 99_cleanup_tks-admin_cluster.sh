@@ -11,6 +11,7 @@ fi
 
 ASSET_DIR=$1
 ADMIN_KUBECONFIG=$2
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 export KUBECONFIG=$ADMIN_KUBECONFIG
 CLUSTER_NAME=$(kubectl get cl -o=jsonpath='{.items[0].metadata.name}')
@@ -38,10 +39,15 @@ for provider in ${CAPI_INFRA_PROVIDERS[@]}
 do
 	case $provider in
 		"aws")
-			# Fix for 'MP_NAME is invalid: spec.awsLaunchTemplate.rootVolume.deviceName: Forbidden: root volume shouldn't have device name'
-			for awsmp_name in $(kubectl get mp -ojsonpath={.items[*].metadata.name}); do
-				kubectl patch awsmp $awsmp_name --type json -p='[{"op": "remove", "path": "/spec/awsLaunchTemplate/rootVolume/deviceName"}]'
-			done
+			if grep -Fq "aws-iam-authenticator" $SCRIPT_DIR/$ADMIN_KUBECONFIG;then
+				# do nothing
+				:
+			else
+				# Fix for 'MP_NAME is invalid: spec.awsLaunchTemplate.rootVolume.deviceName: Forbidden: root volume shouldn't have device name'
+				for awsmp_name in $(kubectl get mp -ojsonpath={.items[*].metadata.name}); do
+					kubectl patch awsmp $awsmp_name --type json -p='[{"op": "remove", "path": "/spec/awsLaunchTemplate/rootVolume/deviceName"}]'
+				done
+			fi
 			;;
 		"byoh")
 			;;

@@ -4,13 +4,13 @@ set -e
 
 source lib/common.sh
 
-declare -a DOCKER_PKGS_UBUNTU=("containerd.io_1.6.7-1_amd64.deb" "docker-ce-cli_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-ce_20.10.17~3-0~ubuntu-focal_amd64.deb" "docker-compose-plugin_2.6.0~ubuntu-focal_amd64.deb")
-declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.7-3.1.el8.x86_64.rpm" "docker-ce-20.10.17-3.el8.x86_64.rpm" "docker-ce-cli-20.10.17-3.el8.x86_64.rpm" "docker-ce-rootless-extras-20.10.17-3.el8.x86_64.rpm " "docker-compose-plugin-2.6.0-3.el8.x86_64.rpm")
+declare -a DOCKER_PKGS_UBUNTU=("containerd.io_1.6.21-1_amd64.deb" "docker-ce-cli_20.10.24~3-0~ubuntu-focal_amd64.deb" "docker-ce_20.10.24~3-0~ubuntu-focal_amd64.deb" "docker-compose-plugin_2.19.1-1~ubuntu.20.04~focal_amd64.deb")
+declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.21-3.1.el8.x86_64.rpm" "docker-ce-20.10.24-3.el8.x86_64.rpm" "docker-ce-cli-20.10.24-3.el8.x86_64.rpm" "docker-ce-rootless-extras-20.10.24-3.el8.x86_64.rpm" "docker-compose-plugin-2.19.1-1.el8.x86_64.rpm")
 
 # Github assets
 KIND_ASSETS_URL="https://github.com/kubernetes-sigs/kind/releases"
 KIND_ASSETS_FILES=(kind-linux-amd64)
-KIND_VERSION="v0.16.0"
+KIND_VERSION="v0.20.0"
 CAPI_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api/releases"
 CAPI_ASSETS_FILES=(metadata.yaml bootstrap-components.yaml cluster-api-components.yaml clusterctl-linux-amd64 control-plane-components.yaml core-components.yaml)
 CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases"
@@ -22,11 +22,20 @@ ARGOWF_ASSETS_FILES=(argo-linux-amd64.gz)
 ARGOCD_ASSETS_URL="https://github.com/argoproj/argo-cd/releases"
 ARGOCD_ASSETS_FILES=(argocd-linux-amd64)
 GUM_ASSETS_URL="https://github.com/charmbracelet/gum/releases"
-GUM_ASSETS_FILES=(gum_0.9.0_linux_x86_64.tar.gz)
-GUM_VERSION="v0.9.0"
+GUM_ASSETS_FILES=(gum_0.10.0_linux_x86_64.tar.gz)
+GUM_VERSION="v0.10.0"
 GITEA_ASSETS_URL="https://github.com/go-gitea/gitea/releases"
 GITEA_ASSETS_FILES=(gitea-1.18.1-linux-amd64)
 GITEA_VERSION="v1.8.1"
+EKSCTL_ASSETS_URL="https://github.com/eksctl-io/eksctl/releases"
+EKSCTL_ASSETS_FILES=(eksctl_linux_amd64.tar.gz)
+EKSCTL_VERSION="latest"
+AWS_IAM_AUTHENTICATOR_ASSETS_URL="https://github.com/kubernetes-sigs/aws-iam-authenticator/releases"
+AWS_IAM_AUTHENTICATOR_ASSETS_FILES=(aws-iam-authenticator_0.5.9_linux_amd64)
+AWS_IAM_AUTHENTICATOR_VERSION="v0.5.9"
+JQ_ASSETS_URL="https://github.com/jqlang/jq/releases"
+JQ_ASSETS_FILES=(jq-linux64)
+JQ_VERSION="jq-1.6"
 
 # Git repos
 # "repo_url,tag/branch,dest_dir"
@@ -38,11 +47,17 @@ git_repos+=("https://github.com/openinfradev/tks-flow,${TKS_RELEASE},tks-flow")
 git_repos+=("https://github.com/openinfradev/decapod-base-yaml,${TKS_RELEASE},decapod-base-yaml")
 git_repos+=("https://github.com/openinfradev/decapod-site,${TKS_RELEASE},decapod-site")
 git_repos+=("https://github.com/openinfradev/decapod-manifests,${TKS_RELEASE},decapod-manifests")
+git_repos+=("https://github.com/openinfradev/tks-proto,${TKS_RELEASE},tks-proto")
+git_repos+=("https://github.com/rancher/local-path-provisioner.git,master,local-path-provisioner")
 
 # Helm chart
 # "chart_name,repo_url,chart_version,dest_dir"
 helm_charts=("argo-cd,https://argoproj.github.io/argo-helm,$ARGOCD_CHART_VERSION,argo-cd-helm")
-helm_charts+=("aws-ebs-csi-driver,https://kubernetes-sigs.github.io/aws-ebs-csi-driver,2.12.1,aws-ebs-csi-driver-helm")
+helm_charts+=("argocd-apps,https://argoproj.github.io/argo-helm,$ARGOCD_APPS_CHART_VERSION,argocd-apps-helm")
+helm_charts+=("aws-ebs-csi-driver,https://kubernetes-sigs.github.io/aws-ebs-csi-driver,2.21.0,aws-ebs-csi-driver-helm")
+helm_charts+=("postgresql,oci://registry-1.docker.io/bitnamicharts,12.6.5,postgresql-helm")
+helm_charts+=("gitea,https://dl.gitea.io/charts,8.3.0,gitea-helm")
+helm_charts+=("ingress-nginx,https://kubernetes.github.io/ingress-nginx,4.7.1,ingress-nginx-helm")
 
 # Container images for Helm chart
 # "chart name,chart dir,value file"
@@ -115,7 +130,11 @@ download_helm_charts() {
 			log_error "wrong helm chart"
 		fi
 
-		helm pull $name --repo $repo --version $version --untar --untardir $ASSETS_DIR/$dest_dir
+		if [ ${repo:0:3} = "oci" ]; then
+			helm pull $repo/$name --version $version --untar --untardir $ASSETS_DIR/$dest_dir
+		else
+			helm pull $name --repo $repo --version $version --untar --untardir $ASSETS_DIR/$dest_dir
+		fi
 	done
 }
 
@@ -198,7 +217,7 @@ log_info "Installing docker packages"
 case $OS_ID in
 	"rocky" | "centos" | "rhel")
 		sudo dnf install -y container-selinux iptables libcgroup fuse-overlayfs slirp4netns
-		sudo dnf localinstall $ASSETS_DIR/docker-ce/*.rpm
+		sudo dnf localinstall -y $ASSETS_DIR/docker-ce/*.rpm
 		;;
 
 	"ubuntu" )
@@ -222,12 +241,19 @@ for provider in ${CAPI_INFRA_PROVIDERS[@]}; do
 			download_assets_from_github BYOH
 			cp $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/byoh-hostagent-linux-amd64 output/
 			chmod +x output/byoh-hostagent-linux-amd64
+			sed -i "s#projects.registry.vmware.com/cluster_api_provider_bringyourownhost/cluster-api-byoh-controller:$BYOH_VERSION#$TKS_BYOH_CONTOLLER_IMAGE:$BYOH_TKS_VERSION#g" $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/infrastructure-components.yaml
 			;;
 	esac
 done
 
 download_assets_from_github ARGOCD
 download_assets_from_github ARGOWF && gunzip $ASSETS_DIR/argo-workflows/$ARGOWF_VERSION/argo-linux-amd64.gz
+
+download_assets_from_github EKSCTL
+download_assets_from_github AWS_IAM_AUTHENTICATOR
+sudo docker pull public.ecr.aws/aws-cli/aws-cli
+
+download_assets_from_github JQ
 
 log_info "Downloading and installing Helm client"
 HELM_TAGS=$(github_get_latest_release helm/helm)
@@ -240,11 +266,13 @@ rm -rf helm.tar.gz linux-amd64
 download_git_repos
 download_helm_charts
 
-pull_helm_images
-pull_misc_images
+if [ "DOWNLOAD_IMAGES" = true ];then
+	pull_helm_images
+	pull_misc_images
 
-pull_workflow_images decapod-flow
-pull_workflow_images tks-flow
+	pull_workflow_images decapod-flow
+	pull_workflow_images tks-flow
+fi
 
 log_info "Downloading kubectl"
 curl -sL -o $ASSETS_DIR/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -266,31 +294,37 @@ do
 done
 cd - >/dev/null
 
-log_info "call render.sh"
-sudo ./util/render.sh main byoh-reference
+if [ "DOWNLOAD_IMAGES" = true ];then
+	log_info "call render.sh"
+	sudo ./util/render.sh main byoh-reference
 
-log_info "download helm charts from rendered decapod manifests"
-./util/download_helm_charts.py /tmp/hr-manifests ${ASSETS_DIR}/decapod-helm
+	log_info "download helm charts from rendered decapod manifests"
+	./util/download_helm_charts.py /tmp/hr-manifests ${ASSETS_DIR}/decapod-helm
 
-log_info "download docker images from rendered decapod manifests"
-[ ! -d /tmp/docker-images/ ] && mkdir /tmp/docker-images/
-cp util/*.docker-images /tmp/docker-images/
-[ ! -d ${ASSETS_DIR}/decapod-image/ ] && mkdir ${ASSETS_DIR}/decapod-image/
-for manifest in `ls /tmp/hr-manifests/*-manifest.yaml`
-do
-	./util/download_container_images.py $manifest /tmp/docker-images
-done
+	log_info "download docker images from rendered decapod manifests"
+	[ ! -d /tmp/docker-images/ ] && mkdir /tmp/docker-images/
+	cp util/*.docker-images /tmp/docker-images/
+	[ ! -d ${ASSETS_DIR}/decapod-image/ ] && mkdir ${ASSETS_DIR}/decapod-image/
+	for manifest in `ls /tmp/hr-manifests/*-manifest.yaml`
+	do
+		./util/download_container_images.py $manifest /tmp/docker-images
+	done
 
-for image in `cat /tmp/docker-images/*-manifest.yaml.docker-images | grep -v "^#" | sort | uniq`
-do
-        ftemp=${image/\//\~}
-        filename=${ftemp/\//\~}
-        echo $filename
-        if [ ! -f "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz" ]
-        then
-                sudo docker pull ${image}
-		sudo docker save ${image} |gzip > "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz" 
-	fi
-done
+	for image in `cat /tmp/docker-images/*-manifest.yaml.docker-images | grep -v "^#" | sort | uniq`
+	do
+		ftemp=${image/\//\~}
+		filename=${ftemp/\//\~}
+		echo $filename
+		if [ ! -f "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz" ]
+		then
+			sudo docker pull ${image}
+			sudo docker save ${image} |gzip > "${ASSETS_DIR}/decapod-image/${filename/:/^}.tar.gz"
+		fi
+	done
+fi
+
+log_info "Downloading calico resources for BYOH"
+mkdir $ASSETS_DIR/calico
+curl -sL https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml -o $ASSETS_DIR/calico/calico.yaml
 
 log_info "...Done"
