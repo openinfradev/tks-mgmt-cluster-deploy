@@ -58,6 +58,8 @@ helm_charts+=("aws-ebs-csi-driver,https://kubernetes-sigs.github.io/aws-ebs-csi-
 helm_charts+=("postgresql,oci://registry-1.docker.io/bitnamicharts,12.6.5,postgresql-helm")
 helm_charts+=("gitea,https://dl.gitea.io/charts,8.3.0,gitea-helm")
 helm_charts+=("ingress-nginx,https://kubernetes.github.io/ingress-nginx,4.7.1,ingress-nginx-helm")
+helm_charts+=("keycloak,https://harbor-cicd.taco-cat.xyz/chartrepo/tks,15.1.6,keycloak-helm")
+
 
 # Container images for Helm chart
 # "chart name,chart dir,value file"

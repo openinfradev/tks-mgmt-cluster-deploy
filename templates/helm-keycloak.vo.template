@@ -1,0 +1,39 @@
+global:
+  storageClass: "taco-storage"
+
+auth:
+  adminUser: ${KEYCLOAK_ADMIN_USER}
+  adminPassword: ${KEYCLOAK_ADMIN_PASSWORD}
+
+proxy: edge
+httpRelativePath: "/auth/"
+production: true
+replicaCount: 3
+
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  hostname: ${KEYCLOAK_HOSTNAME}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-buffer-size: 20k
+${KEYCLOAK_ANNOTATIONS}
+  tls: ${KEYCLOAK_INGRESS_TLS_ENABLED}
+  selfSigned: ${KEYCLOAK_SELF_SIGNED}
+  secrets: ${KEYCLOAK_EXISTING_CERTIFICATE}
+cache:
+  enabled: true
+  stackName: kubernetes
+
+externalDatabase:
+  host: ${DATABASE_HOST}
+  port: ${DATABASE_PORT}
+  user: ${DATABASE_USER}
+  database: keycloak
+  password: ${DATABASE_PASSWORD}
+
+extraEnvVars:
+  - name: QUARKUS_TRANSACTION_MANAGER_ENABLE_RECOVERY
+    value: "true"
+
+postgresql:
+  enabled: ${INTERNAL_POSTGRESQL_ENABLED}
