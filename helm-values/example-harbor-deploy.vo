@@ -36,7 +36,7 @@ persistence:
 database:
   type: external
   external:
-    host: "tks-prd-admin.ccl0tkt5j0xi.ap-northeast-2.rds.amazonaws.com"
+    host: "tks-prd-admin.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com"
     port: "5432"
     username: "harbor"
     password: "CHANGEME"
