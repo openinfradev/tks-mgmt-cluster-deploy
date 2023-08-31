@@ -1,0 +1,70 @@
+expose:
+  tls:
+    certSource: secret
+    secret:
+      secretName: "harbor.taco-cat-tls"
+  ingress:
+    hosts:
+      core: harbor.taco-cat.xyz
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: http0issuer
+      acme.cert-manager.io/http01-edit-in-place: "true"
+externalURL: https://harbor.taco-cat.xyz
+persistence:
+  persistentVolumeClaim:
+    registry:
+      storageClass: "taco-efs-storage"
+      accessMode: ReadWriteMany
+      size: 200Gi
+    chartmuseum:
+      storageClass: "taco-efs-storage"
+      accessMode: ReadWriteMany
+      size: 20Gi
+    jobservice:
+      jobLog:
+        storageClass: "taco-efs-storage"
+        accessMode: ReadWriteMany
+      scanDataExports:
+        storageClass: "taco-efs-storage"
+        accessMode: ReadWriteMany
+    redis:
+      storageClass: "taco-storage"
+      accessMode: ReadWriteOnce
+    trivy:
+      storageClass: "taco-storage"
+database:
+  type: external
+  external:
+    host: "tks-prd-admin.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com"
+    port: "5432"
+    username: "harbor"
+    password: "CHANGEME"
+    coreDatabase: "registry"
+    # if using existing secret, the key must be "password"
+    existingSecret: ""
+    # "disable" - No SSL
+    # "require" - Always SSL (skip verification)
+    # "verify-ca" - Always SSL (verify that the certificate presented by the
+    # server was signed by a trusted CA)
+    # "verify-full" - Always SSL (verify that the certification presented by the
+    # server was signed by a trusted CA and the server host name matches the one
+    # in the certificate)
+    sslmode: "require"
+notary:
+  enabled: false
+cache:
+  enabled: true
+core:
+  replicas: 2
+jobservice:
+  replicas: 2
+registry:
+  replicas: 2
+chartmuseum:
+  replicas: 2
+trivy:
+  replicas: 2
+portal:
+  replicas: 2
+harborAdminPassword: "CHANGEME"
