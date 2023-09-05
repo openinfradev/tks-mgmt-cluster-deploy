@@ -9,6 +9,8 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
+BUNDLE_PATH=$1
+
 ## disabling byoh-hostagent service
 sudo systemctl stop byoh-hostagent && sudo systemctl disable byoh-hostagent && sudo systemctl daemon-reload
 
@@ -19,7 +21,7 @@ sudo systemctl stop kubelet && sudo systemctl disable kubelet && sudo systemctl 
 sudo systemctl stop containerd && sudo systemctl disable containerd && sudo systemctl daemon-reload
 
 ## removing containerd configurations and cni plugins
-sudo rm -rf /opt/cni/ && sudo rm -rf /opt/containerd/ &&  tar tf "$BUNDLE_PATH/containerd.tar" | xargs -n 1 echo '/' | sed 's/ //g'  | grep -e '[^/]$' | xargs rm -f
+sudo rm -rf /opt/cni/ && sudo rm -rf /opt/containerd/ &&  sudo tar tf "$BUNDLE_PATH/containerd.tar" | xargs -n 1 echo '/' | sed 's/ //g'  | grep -e '[^/]$' | xargs sudo rm -f
 
 ## removing packages
 for pkg in kubeadm kubelet kubectl kubernetes-cni cri-tools; do
@@ -27,7 +29,7 @@ for pkg in kubeadm kubelet kubectl kubernetes-cni cri-tools; do
 done
 
 ## removing os configuration
-tar tf "$BUNDLE_PATH/conf.tar" | xargs -n 1 echo '/etc/sysctl.d' | sed 's/ //g' | grep -e "[^/]$" | xargs rm -f
+sudo tar tf "$BUNDLE_PATH/conf.tar" | xargs -n 1 echo '/etc/sysctl.d/' | sed 's/ //g' | grep -e "[^/]$" | xargs sudo rm -f
 
 ## remove kernal modules
 sudo modprobe -rq overlay && modprobe -r br_netfilter
@@ -42,6 +44,6 @@ sudo setenforce 1
 sudo sed -i 's/^SELINUX=permissive$/SELINUX=enforcing/' /etc/selinux/config
 
 ## enable swap
-#sudo swapon -a && sed -ri '/\sswap\s/s/^#?//' /etc/fstab
+sudo swapon -a && sudo sed -ri '/\sswap\s/s/^#?//' /etc/fstab
 
-rm -rf $BUNDLE_PATH
+sudo rm -rf $BUNDLE_PATH
