@@ -5,17 +5,18 @@ set -e
 source lib/common.sh
 
 function usage {
-        echo -e "\nUsage: $0 <hostname> [--output OUTPUT_SCRIPT_PATH]"
+        echo -e "\nUsage: $0 <kubeconfig> <hostname> [--output OUTPUT_SCRIPT_PATH]"
 	echo -e "\n\tOUTPUT_SCRIPT_PATH (default): output/install_byoh_hostagent-<hostname>.sh"
         exit 1
 }
 
-[[ $# -ge 1 ]] || usage 
+[[ $# -ge 2 ]] || usage 
 
 inarray=$(echo ${CAPI_INFRA_PROVIDERS[@]} | grep -ow "byoh" | wc -w)
 [[ $inarray -ne 0 ]] || log_error "byoh infra provider is not configured"
 
-HOSTNAME=$1
+export KUBECONFIG=$1
+HOSTNAME=$2
 shift
 OUTPUT_SCRIPT_PATH=output/install_byoh_hostagent-$HOSTNAME.sh
 
@@ -76,8 +77,10 @@ sleep 3
 
 kubectl get bootstrapkubeconfig bootstrap-kubeconfig-$HOSTNAME -n default -o=jsonpath='{.status.bootstrapKubeconfigData}' > output/bootstrap-kubeconfig-$HOSTNAME.conf
 
-export KIND_PORT=$(sudo docker inspect kind-control-plane -f '{{ $published := index .NetworkSettings.Ports "6443/tcp" }}{{ range $published }}{{ .HostPort }}{{ end }}')
-sed -i 's/    server\:.*/    server\: https\:\/\/'"$BOOTSTRAP_CLUSTER_SERVER_IP:$KIND_PORT"'/g' output/bootstrap-kubeconfig-$HOSTNAME.conf
+if kubectl get no | grep kind; then
+	export KIND_PORT=$(sudo docker inspect kind-control-plane -f '{{ $published := index .NetworkSettings.Ports "6443/tcp" }}{{ range $published }}{{ .HostPort }}{{ end }}')
+	sed -i 's/    server\:.*/    server\: https\:\/\/'"$BOOTSTRAP_CLUSTER_SERVER_IP:$KIND_PORT"'/g' output/bootstrap-kubeconfig-$HOSTNAME.conf
+fi
 
 bootstrap_kubeconfig=$(cat output/bootstrap-kubeconfig-$HOSTNAME.conf | base64 -w 0)
 export bootstrap_kubeconfig

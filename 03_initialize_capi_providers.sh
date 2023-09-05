@@ -10,6 +10,14 @@ if [ -z "$1" ]
     exit 1
 fi
 
+provision_aws_iam_resources () {
+	cat templates/bootstrap-manager-account.yaml.template | envsubst > bootstrap-manager-account.yaml
+	clusterawsadm bootstrap iam update-cloudformation-stack --config bootstrap-manager-account.yaml
+}
+
+aws_cli() {
+	sudo docker run --rm -it -v ~/.aws:/root/.aws public.ecr.aws/aws-cli/aws-cli $1
+}
 log_info "Preparing Cluster API providers initilizaiton"
 
 sudo cp $1/cluster-api/$CAPI_VERSION/clusterctl-linux-amd64 /usr/local/bin/clusterctl
@@ -30,7 +38,7 @@ providers:
     url: "file://localhost$(realpath $1)/infrastructure-aws/$CAPA_VERSION/infrastructure-components.yaml"
     type: "InfrastructureProvider"
   - name: "byoh"
-    url: "file://localhost$(realpath $1)/infrastructure-byoh/$CAPO_VERSION/infrastructure-components.yaml"
+    url: "file://localhost$(realpath $1)/infrastructure-byoh/$BYOH_VERSION/infrastructure-components.yaml"
     type: "InfrastructureProvider"
 EOF
 
@@ -51,9 +59,14 @@ do
 			export AWS_REGION
 			export AWS_ACCESS_KEY_ID
 			export AWS_SECRET_ACCESS_KEY
+			export AWS_ACCOUNT_ID
+
+			gum confirm "Do you want to create IAM resources?" && provision_aws_iam_resources
 
 			export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 			export EXP_MACHINE_POOL=true
+			export CAPA_EKS_IAM=true
+			export CAPA_EKS_ADD_ROLES=true
 			
 			CAPI_NAMESPACE+=" $provider-system"
 			;;
