@@ -15,6 +15,7 @@ ASSET_DIR=$1
 HELM_VALUE_FILE=$2
 HELM_VALUE_K8S_ADDONS="--set cni.calico.enabled=true"
 IS_MANAGED_CLUSTER="false"
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 export KUBECONFIG=~/.kube/config
 
@@ -123,7 +124,7 @@ install_capi_to_admin_cluster() {
 		"byoh")
 			CAPI_PROVIDER_NS=byoh-system
 			for no in $(kubectl get no -o name); do
-			  BYOH_TMP_NODE=$no
+			  BYOH_TMP_NODE=${no#*/}
 				kubectl taint nodes $no node-role.kubernetes.io/control-plane:NoSchedule- || true
 			done
 			;;
@@ -164,13 +165,13 @@ if [ $TKS_ADMIN_CLUSTER_INFRA_PROVIDER == "byoh" ]; then
        log_info " $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME scale md --replicas 3 $CLUSTER_NAME-md-tks"
        log_info "3. Remove the temporary admin node."
        log_info " $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME drain --ignore-daemonsets=true $BYOH_TMP_NODE"
-       TMP_MACHINE_NAME=$(kubectl get machine -ojsonpath="{.items[?(@.status.nodeRef.name == \"$BYOH_TMP_NODE\")].metadata.name}")
-       TMP_BYOM_NAME=$(kubectl get byomachine -ojsonpath="{.items[?(@.metadata.ownerReferences[].name == \"$TMP_MACHINE_NAME\")].metadata.name}")
+       TMP_MACHINE_NAME=$(kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME get machine -ojsonpath="{.items[?(@.status.nodeRef.name == \"$BYOH_TMP_NODE\")].metadata.name}")
+       TMP_BYOM_NAME=$(kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME get byomachine -ojsonpath="{.items[?(@.metadata.ownerReferences[].name == \"$TMP_MACHINE_NAME\")].metadata.name}")
        log_info " $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME delete machine $TMP_MACHINE_NAME"
-       log_info " $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME patch machine -p '{"metadata":{"finalizers":null}}' --type=merge $TMP_MACHINE_NAME"
-       log_info " $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME delete byomachines $TMP_BYOM_NAME"
+       log_info " (if necessary) $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME patch machine -p '{"metadata":{"finalizers":null}}' --type=merge $TMP_MACHINE_NAME"
+       log_info " (if necessary) $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME delete byomachines $TMP_BYOM_NAME"
        log_info " $ kubectl --kubeconfig output/kubeconfig_$CLUSTER_NAME delete byoh $BYOH_TMP_NODE"
        log_info "4. Copy util/byoh_host_uninstall.sh to the temporary node and Run the script."
-       log_info " $ ./byoh_host_uninstall.sh /var/lib/byoh/bundles/harbor.taco-cat.xyz/cluster_api_provider_bringyourownhost/byoh-bundle-rocky_linux_8.7_x86-64_k8s\:v1.25.11/"
+       log_info " (example) $ ./byoh_host_uninstall.sh /var/lib/byoh/bundles/harbor.taco-cat.xyz/cluster_api_provider_bringyourownhost/byoh-bundle-rocky_linux_8.7_x86-64_k8s\:v1.25.11/"
        log_info "5. To reuse the temporary host as an admin cluster node, regenerate byoh script and run byoh-hostagent on the host."
 fi
