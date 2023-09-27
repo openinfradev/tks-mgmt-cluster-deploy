@@ -1,101 +1,42 @@
 #!/bin/bash
 set -e
 
-K8S_VERSION=1.25.11
-
-BOOTSTRAP_KUBECONFIG="${bootstrap_kubeconfig}"
+BYOH_HOSTAGENT_BINARY_BASE_URL=http://${GITEA_NODE_IP}:${GITEA_NODE_PORT}/api/packages/${GIT_SVC_USERNAME}/generic/byoh_hostagent
+BYOH_HOSTAGENT_CHECKSUM=${HOSTAGENT_CHECKSUM}
+BOOTSTRAP_KUBECONFIG="${BOOTSTRAP_KUBECONFIG}"
 
 check_if_supported_os() {
-	source <(sed 's/^/OS_/g' /etc/os-release)
+        OS_ID=$(grep ^ID= /etc/os-release  | awk -F'=' '{print $2}' | tr -d '"')
+        OS_VERSION_ID=$(grep ^VERSION_ID= /etc/os-release  | awk -F'=' '{print $2}' | tr -d '"')
 
-	case $OS_ID in
-		"rocky" | "centos" | "rhel")
-                        if [[ ${OS_REDHAT_SUPPORT_PRODUCT_VERSION:0:1} == "8" ]]; then
-				true
-			else
-				false
-			fi
-			;;
-		"ubuntu")
-			if [[ $OS_VERSION_ID == "20.04" ]]; then
-				true
-			else
-				false
-			fi
-			;;
-		*)
-			false
-			;;
-	esac
+        case $OS_ID in
+                "rocky" | "centos" | "rhel")
+                        if [[ ${OS_VERSION_ID:0:1} == "8" ]]; then
+                                true
+                        else
+                                false
+                        fi
+                        ;;
+                "ubuntu")
+                        if [[ $OS_VERSION_ID == "20.04" ]]; then
+                                true
+                        else
+                                false
+                        fi
+                        ;;
+                *)
+                        false
+                        ;;
+        esac
+}
+
+download_byoh_agent() {
+	curl -L $BYOH_HOSTAGENT_BINARY_BASE_URL/${BYOH_TKS_VERSION}/byoh-hostagent-linux-amd64 -o byoh-hostagent
+	echo "$BYOH_HOSTAGENT_CHECKSUM byoh-hostagent" | sha1sum --check
 }
 
 prepare_rocky_byoh_node() {
-	# packages
-	sudo dnf install -y iproute-tc
-
-	# SELinux
-	sudo sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
-	sudo setenforce 0
-
-	# swap
-	sudo sed -i '/swap/d' /etc/fstab
-	sudo swapoff -a
-	
-	# modules
-	sudo cat << EOF | sudo tee /etc/modules-load.d/containerd.conf
-overlay
-br_netfilter
-EOF
-
-	sudo modprobe overlay
-	sudo modprobe br_netfilter
-
-	# sysctl
-	sudo cat << EOF | sudo tee /etc/sysctl.d/99-kubernetes-cri.conf
-net.ipv4.ip_forward = 1
-net.bridge.bridge-nf-call-iptables = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-EOF
-	
-	sudo sysctl --system
-	
-	# systemd-resolved
-	sudo systemctl start systemd-resolved.service
-	sudo systemctl enable systemd-resolved.service
-	
-	# containerd
-	sudo dnf install dnf-utils -y
-	sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-	sudo dnf install -y containerd.io
-	
-	sudo mkdir -p /etc/containerd
-	sudo containerd config default | sudo tee /etc/containerd/config.toml
-	sudo sed -i "s/ SystemdCgroup = false/ SystemdCgroup = true/g" /etc/containerd/config.toml
-	
-	sudo systemctl enable containerd
-	sudo systemctl restart containerd
-	sudo systemctl status containerd
-	
-	# k8s binaries
-	cat << EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
-[kubernetes]
-name=Kubernetes
-baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
-enabled=1
-gpgcheck=1
-repo_gpgcheck=1
-gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-exclude=kubelet kubeadm kubectl
-EOF
-	
-	sudo yum install -y kubelet-$K8S_VERSION kubeadm-$K8S_VERSION kubectl-$K8S_VERSION --disableexcludes=kubernetes
-	
-	sudo dnf install yum-plugin-versionlock -y
-	sudo dnf versionlock kubelet kubeadm kubectl
-	
-	sudo systemctl enable kubelet.service
-	sudo systemctl start kubelet.service
-	sudo systemctl status kubelet.service
+	sudo dnf install -y socat iptables-ebtables conntrack-tools ethtool iproute-tc
 }
 
 prepare_ubuntu_byoh_node() {
@@ -119,9 +60,7 @@ prepare_byoh_node() {
 
 	case $OS_ID in
 		"rocky" | "centos" | "rhel")
-			#prepare_rocky_byoh_node
-			#BYOH_AGENT_OPTS+=" --skip-installation"
-			:
+			prepare_rocky_byoh_node
 			;;
 
 		"ubuntu" )
@@ -131,7 +70,7 @@ prepare_byoh_node() {
 }
 
 run_byoh_agent() {
-	sudo cp byoh-hostagent-linux-amd64 /usr/local/bin/byoh-hostagent
+	sudo cp byoh-hostagent /usr/local/bin/byoh-hostagent
 	sudo chmod +x /usr/local/bin/byoh-hostagent
 
 	cat << EOF | sudo tee /etc/systemd/system/byoh-hostagent.service
@@ -167,14 +106,38 @@ EOF
 	sudo systemctl status byoh-hostagent.service
 }
 
-if [ -z "$1" ]
-then
-	echo "usage: $0 <Host Role: control-plane, tks or worker>"
+function usage {
+        echo -e "\nUsage: $0 --role NODE_ROLE [--skip-download] [--verbose]\n"
+	echo -e " - NODE_ROLE: control-plane, tks or worker"
+        exit 1
+}
+
+# We use "$@" instead of $* to preserve argument-boundary information
+ARGS=$(getopt -o 'r:svh' --long 'role:,skip-download,verbose,help' -- "$@") || usage
+eval "set -- $ARGS"
+
+while true; do
+	case $1 in
+		(-h|--help)
+			usage; shift 2;;
+		(-s|--skip-download)
+			SKIP_BYOH_HOSTAGENT_DOWNLOAD="true"
+			shift 2;;
+		(-v|--verbose)
+			BYOH_AGENT_OPTS="-v 20" # for debugging
+			shift 2;;
+		(-r|--role)
+			BYOH_ROLE=$2
+			shift 2;;
+		(--)  shift; break;;
+		(*)   exit 1;;
+	esac
+done
+
+if [ -z "$BYOH_ROLE" ]; then
+	echo "Error: '--role' option is mandatory. Use the '-h' option for help."
 	exit 1
 fi
-
-BYOH_ROLE=$1
-BYOH_AGENT_OPTS="" # '-v 20' for debugging
 
 set +e
 check_if_supported_os
@@ -184,5 +147,8 @@ if [[ $? != 0 ]]; then
 fi
 set -e
 
+if [[ $SKIP_BYOH_HOSTAGENT_DOWNLOAD != "true" ]]; then
+	download_byoh_agent
+fi
 prepare_byoh_node
 run_byoh_agent
