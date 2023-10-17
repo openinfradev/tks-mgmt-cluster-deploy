@@ -1,3 +1,9 @@
+service:
+  http:
+    type: NodePort
+    nodePort: 30303
+    externalTrafficPolicy: Local
+
 ingress:
   hosts:
     - host: localhost
