@@ -9,7 +9,7 @@ case $CAPI_RELEASE in
                 CAPI_VERSION="v1.5.0"
                 CAPA_VERSION="v2.2.1"
                 BYOH_VERSION="v0.4.0"
-                BYOH_TKS_VERSION="dev24"
+                BYOH_TKS_VERSION="v0.4.0-tks-20231017"
                 ;;
 esac
 
