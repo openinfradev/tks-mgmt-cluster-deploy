@@ -28,7 +28,8 @@ function log() {
 
 if [ "$GIT_SVC_TYPE" = "gitea" ];then
 	GIT_SVC_HTTP="http"
-	GIT_SVC_BASE_URL="localhost:3000"
+	NODEPORT_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+	GIT_SVC_BASE_URL="$NODEPORT_IP:30303"
 else
 	GIT_SVC_HTTP=${GIT_SVC_URL%://*}
 	GIT_SVC_BASE_URL=${GIT_SVC_URL#*//}
