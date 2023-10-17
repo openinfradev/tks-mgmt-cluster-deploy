@@ -144,12 +144,9 @@ function install_gitea_on_admin_cluster() {
 	JQ_ASSETS_DIR="$ASSET_DIR/jq/$(ls $ASSET_DIR/jq | grep jq)"
 	chmod +x $JQ_ASSETS_DIR/jq-linux64
 
-	kubectl port-forward -n gitea svc/gitea-http 3000:3000 2>&1 > /dev/null &
-	GITEA_KUBECTL_PID=$!
-	sleep 3
-
 	GIT_SVC_HTTP="http"
-	GIT_SVC_BASE_URL="localhost:3000"
+	NODEPORT_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+	GIT_SVC_BASE_URL="$NODEPORT_IP:30303"
 	export GIT_SVC_TOKEN=$(curl -sH "Content-Type: application/json" -d '{"name":"tks-admin", "scopes":["repo","admin:org","admin:repo_hook","admin:org_hook","delete_repo","package","admin:application"]}' -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD http://localhost:3000/api/v1/users/$GITEA_ADMIN_USER/tokens | $JQ_ASSETS_DIR/jq-linux64 -r .sha1)
 	sed -i '/GIT_SVC_TOKEN/d' $SCRIPT_DIR/conf.sh
 	echo GIT_SVC_TOKEN=$GIT_SVC_TOKEN >> $SCRIPT_DIR/conf.sh
@@ -229,8 +226,6 @@ if [ "$GIT_SVC_TYPE" = "gitea" ];then
 	git push gitea main:main
 	cd -
 fi
-
-kill $GITEA_KUBECTL_PID
 
 helm upgrade -i argo-cd $ASSET_DIR/argo-cd-helm/argo-cd -f $ASSET_DIR/decapod-bootstrap/argocd-install/values-override.yaml -n argo
 gum spin --spinner dot --title "Wait for argo CD ready..." -- util/wait_for_all_pods_in_ns.sh argo
