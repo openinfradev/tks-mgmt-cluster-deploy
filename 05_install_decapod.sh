@@ -145,10 +145,14 @@ function install_gitea_on_admin_cluster() {
 	chmod +x $JQ_ASSETS_DIR/jq-linux64
 
 	GIT_SVC_HTTP="http"
-	NODEPORT_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
-	GIT_SVC_BASE_URL="$NODEPORT_IP:30303"
-	export GIT_SVC_TOKEN=$(curl -sH "Content-Type: application/json" -d '{"name":"tks-admin", "scopes":["repo","admin:org","admin:repo_hook","admin:org_hook","delete_repo","package","admin:application"]}' -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD http://localhost:3000/api/v1/users/$GITEA_ADMIN_USER/tokens | $JQ_ASSETS_DIR/jq-linux64 -r .sha1)
-	sed -i '/GIT_SVC_TOKEN/d' $SCRIPT_DIR/conf.sh
+	GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
+	GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+	GIT_SVC_BASE_URL="$GITEA_NODE_IP:$GITEA_NODE_PORT"
+	if [ -n ${GIT_SVC_TOKEN+x} ]; then
+	        curl -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/users/$GITEA_ADMIN_USER/tokens/tks-admin
+		sed -i '/GIT_SVC_TOKEN/d' $SCRIPT_DIR/conf.sh
+	fi
+	export GIT_SVC_TOKEN=$(curl -sH "Content-Type: application/json" -d '{"name":"tks-admin", "scopes":["repo","admin:org","admin:repo_hook","admin:org_hook","delete_repo","package","admin:application"]}' -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/users/$GITEA_ADMIN_USER/tokens | $JQ_ASSETS_DIR/jq-linux64 -r .sha1)
 	echo GIT_SVC_TOKEN=$GIT_SVC_TOKEN >> $SCRIPT_DIR/conf.sh
 
 	curl -X 'POST' $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/orgs?token=${GIT_SVC_TOKEN} -H 'accept: application/json' -H 'Content-Type: application/json' -d "{ \"username\": \"$GIT_SVC_USERNAME\" }"
@@ -221,8 +225,9 @@ if [ "$GIT_SVC_TYPE" = "gitea" ];then
 	git add .
 	git commit -m "${CLUSTER_NAME}"
 	GIT_SVC_HTTP="http"
-	NODEPORT_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
-	GIT_SVC_BASE_URL="$NODEPORT_IP:30303"
+	GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
+	GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+	GIT_SVC_BASE_URL="$GITEA_NODE_IP:$GITEA_NODE_PORT"
 	git remote add gitea $GIT_SVC_HTTP://$(echo -n $GIT_SVC_TOKEN)@${GIT_SVC_BASE_URL}/${GIT_SVC_USERNAME}/decapod-bootstrap
 	git push gitea main:main
 	cd -

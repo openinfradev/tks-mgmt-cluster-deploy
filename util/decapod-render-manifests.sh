@@ -28,8 +28,9 @@ function log() {
 
 if [ "$GIT_SVC_TYPE" = "gitea" ];then
 	GIT_SVC_HTTP="http"
-	NODEPORT_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
-	GIT_SVC_BASE_URL="$NODEPORT_IP:30303"
+        GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
+        GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+        GIT_SVC_BASE_URL="$GITEA_NODE_IP:$GITEA_NODE_PORT"
 else
 	GIT_SVC_HTTP=${GIT_SVC_URL%://*}
 	GIT_SVC_BASE_URL=${GIT_SVC_URL#*//}
