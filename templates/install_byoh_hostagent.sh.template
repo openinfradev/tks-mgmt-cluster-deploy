@@ -119,13 +119,13 @@ eval "set -- $ARGS"
 while true; do
 	case $1 in
 		(-h|--help)
-			usage; shift 2;;
+			usage;;
 		(-s|--skip-download)
 			SKIP_BYOH_HOSTAGENT_DOWNLOAD="true"
-			shift 2;;
+			shift 1;;
 		(-v|--verbose)
 			BYOH_AGENT_OPTS="-v 20" # for debugging
-			shift 2;;
+			shift 1;;
 		(-r|--role)
 			BYOH_ROLE=$2
 			shift 2;;

@@ -39,15 +39,13 @@ JQ_VERSION="jq-1.6"
 
 # Git repos
 # "repo_url,tag/branch,dest_dir"
-git_repos=("https://github.com/openinfradev/helm-charts.git,${TKS_RELEASE},taco-helm")
-git_repos+=("https://github.com/openinfradev/helm-repo.git,${TKS_RELEASE},taco-helm-repo")
-git_repos+=("https://github.com/openinfradev/decapod-bootstrap,${TKS_RELEASE},decapod-bootstrap")
+git_repos=("https://github.com/openinfradev/helm-charts.git,main,taco-helm")
+git_repos+=("https://github.com/openinfradev/helm-repo.git,main,taco-helm-repo")
+git_repos+=("https://github.com/openinfradev/decapod-bootstrap,main,decapod-bootstrap")
 git_repos+=("https://github.com/openinfradev/decapod-flow,${TKS_RELEASE},decapod-flow")
 git_repos+=("https://github.com/openinfradev/tks-flow,${TKS_RELEASE},tks-flow")
 git_repos+=("https://github.com/openinfradev/decapod-base-yaml,${TKS_RELEASE},decapod-base-yaml")
 git_repos+=("https://github.com/openinfradev/decapod-site,${TKS_RELEASE},decapod-site")
-git_repos+=("https://github.com/openinfradev/decapod-manifests,${TKS_RELEASE},decapod-manifests")
-git_repos+=("https://github.com/openinfradev/tks-proto,${TKS_RELEASE},tks-proto")
 git_repos+=("https://github.com/rancher/local-path-provisioner.git,master,local-path-provisioner")
 
 # Helm chart
@@ -239,8 +237,8 @@ for provider in ${CAPI_INFRA_PROVIDERS[@]}; do
 			;;
 		"byoh")
 			download_assets_from_github BYOH
-			cp $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/byoh-hostagent-linux-amd64 output/
-			chmod +x output/byoh-hostagent-linux-amd64
+			cp $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/byoh-hostagent-linux-amd64 output/byoh-hostagent
+			chmod +x output/byoh-hostagent
 			sed -i "s#projects.registry.vmware.com/cluster_api_provider_bringyourownhost/cluster-api-byoh-controller:$BYOH_VERSION#$TKS_BYOH_CONTOLLER_IMAGE:$BYOH_TKS_VERSION#g" $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/infrastructure-components.yaml
 			;;
 	esac

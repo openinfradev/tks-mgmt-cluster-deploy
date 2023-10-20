@@ -108,28 +108,34 @@ log_info  "Make sure all node status are ready"
 install_capi_to_admin_cluster() {
 	export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 	log_info "Initializing cluster API provider components in TKS admin cluster"
+	for provider in ${CAPI_INFRA_PROVIDERS[@]}; do
+		case $provider in
+			"aws")
+				export AWS_REGION
+				export AWS_ACCESS_KEY_ID
+				export AWS_SECRET_ACCESS_KEY
+
+				export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+				export EXP_MACHINE_POOL=true
+				export CAPA_EKS_IAM=true
+				export CAPA_EKS_ADD_ROLES=true
+
+				CAPI_PROVIDER_NS=capa-system
+				;;
+			"byoh")
+				CAPI_PROVIDER_NS=byoh-system
+				;;
+		esac
+	done
+
 	case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
-		"aws")
-			export AWS_REGION
-			export AWS_ACCESS_KEY_ID
-			export AWS_SECRET_ACCESS_KEY
-
-			export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
-			export EXP_MACHINE_POOL=true
-			export CAPA_EKS_IAM=true
-			export CAPA_EKS_ADD_ROLES=true
-
-			CAPI_PROVIDER_NS=capa-system
-			;;
 		"byoh")
-			CAPI_PROVIDER_NS=byoh-system
 			for no in $(kubectl get no -o name); do
-			  BYOH_TMP_NODE=${no#*/}
+				BYOH_TMP_NODE=${no#*/}
 				kubectl taint nodes $no node-role.kubernetes.io/control-plane:NoSchedule- || true
 			done
 			;;
 	esac
-
 	gum spin --spinner dot --title "Waiting for providers to be installed..." -- clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}") --wait-providers
 }
 
