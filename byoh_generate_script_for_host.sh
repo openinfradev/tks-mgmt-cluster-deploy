@@ -82,9 +82,13 @@ if kubectl get no | grep kind; then
 	sed -i 's/    server\:.*/    server\: https\:\/\/'"$BOOTSTRAP_CLUSTER_SERVER_IP:$KIND_PORT"'/g' output/bootstrap-kubeconfig-$HOSTNAME.conf
 fi
 
-bootstrap_kubeconfig=$(cat output/bootstrap-kubeconfig-$HOSTNAME.conf | base64 -w 0)
-export bootstrap_kubeconfig
-envsubst '$bootstrap_kubeconfig' < ./templates/install_byoh_hostagent.sh.template >$OUTPUT_SCRIPT_PATH
+# the variable to be substituded for BYOH host agent install script
+BOOTSTRAP_KUBECONFIG=$(cat output/bootstrap-kubeconfig-$HOSTNAME.conf | base64 -w 0)
+GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
+GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+export BOOTSTRAP_KUBECONFIG GITEA_NODE_IP GITEA_NODE_PORT GIT_SVC_USERNAME
+
+envsubst '$BOOTSTRAP_KUBECONFIG $GITEA_NODE_IP $GITEA_NODE_PORT $GIT_SVC_USERNAME' < ./templates/install_byoh_hostagent.sh.template >$OUTPUT_SCRIPT_PATH
 chmod +x $OUTPUT_SCRIPT_PATH
 
 log_info "Copy below files to each host and run a script!"

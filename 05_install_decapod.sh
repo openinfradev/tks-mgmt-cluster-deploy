@@ -318,6 +318,10 @@ case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
 			ARGOCD_SERVER=$(kubectl get no -ojsonpath='{.items[0].status.addresses[?(@.type == "InternalIP")].address}')
 			ARGOCD_PORT=30080
 			argocd_add_admin_cluster
+
+			# BYOH
+			curl -v --user tks_admin:$GIT_SVC_TOKEN -X DELETE $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/packages/decapod10/generic/byoh_hostagent/$BYOH_TKS_VERSION/byoh-hostagent-linux-amd64 || true
+			curl -v --user tks_admin:$GIT_SVC_TOKEN --upload-file output/byoh-hostagent-linux-amd64 $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/packages/decapod10/generic/byoh_hostagent/$BYOH_TKS_VERSION/byoh-hostagent-linux-amd64
 		;;
 esac
 
@@ -332,5 +336,11 @@ echo "    token: ${CLIENT_TOKEN}" >> $TKS_KUBECONFIG_ADMIN
 
 kubectl delete secret tks-admin-kubeconfig-secret -n argo || true
 kubectl create secret generic tks-admin-kubeconfig-secret -n argo --from-file=value=$TKS_KUBECONFIG_ADMIN
+kubectl delete secret byoh-hostagent-install-template -n argo || true
+cp templates/install_byoh_hostagent.sh.template templates/install_byoh_hostagent.sh.template.orig
+HOSTAGENT_CHECKSUM=$(sha1sum output/byoh-hostagent-linux-amd64 | awk '{print $1}')
+export HOSTAGENT_CHECKSUM BYOH_TKS_VERSION GIT_SVC_USERNAME GITEA_NODE_PORT GITEA_NODE_IP
+envsubst '$HOSTAGENT_CHECKSUM $BYOH_TKS_VERSION $GIT_SVC_USERNAME $GITEA_NODE_IP $GITEA_NODE_PORT' < templates/install_byoh_hostagent.sh.template.orig > templates/install_byoh_hostagent.sh.template
+kubectl create secret generic byoh-hostagent-install-template -n argo --from-file=agent-install-template=templates/install_byoh_hostagent.sh.template
 
 log_info "...Done"
