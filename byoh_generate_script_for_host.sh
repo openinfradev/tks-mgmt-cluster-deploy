@@ -84,8 +84,8 @@ fi
 
 # the variable to be substituded for BYOH host agent install script
 BOOTSTRAP_KUBECONFIG=$(cat output/bootstrap-kubeconfig-$HOSTNAME.conf | base64 -w 0)
-GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
-GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http 2>/dev/null) || true
+GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}') || true
 export BOOTSTRAP_KUBECONFIG GITEA_NODE_IP GITEA_NODE_PORT GIT_SVC_USERNAME
 
 envsubst '$BOOTSTRAP_KUBECONFIG $GITEA_NODE_IP $GITEA_NODE_PORT $GIT_SVC_USERNAME' < ./templates/install_byoh_hostagent.sh.template >$OUTPUT_SCRIPT_PATH
