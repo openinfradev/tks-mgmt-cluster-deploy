@@ -92,4 +92,4 @@ envsubst '$BOOTSTRAP_KUBECONFIG $GITEA_NODE_IP $GITEA_NODE_PORT $GIT_SVC_USERNAM
 chmod +x $OUTPUT_SCRIPT_PATH
 
 log_info "Copy below files to each host and run a script!"
-echo "$OUTPUT_SCRIPT_PATH output/byoh-hostagent-linux-amd64"
+echo "$OUTPUT_SCRIPT_PATH output/byoh-hostagent"
