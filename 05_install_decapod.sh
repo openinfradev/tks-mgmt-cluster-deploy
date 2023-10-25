@@ -264,7 +264,7 @@ if [[ " ${CAPI_INFRA_PROVIDERS[*]} " =~ " aws " ]]; then
 fi
 
 log_info "Create a Git service token secret..."
-argo submit --from wftmpl/tks-create-git-svc-token-secret -n argo -p user=$GIT_SVC_GIT_SVC_USERNAME -p token=$GIT_SVC_TOKEN -p git_svc_type=$GIT_SVC_TYPE -p git_svc_url=$GIT_SVC_URL --watch
+argo submit --from wftmpl/tks-create-git-svc-token-secret -n argo -p user=$GIT_SVC_USERNAME -p token=$GIT_SVC_TOKEN -p git_svc_type=$GIT_SVC_TYPE -p git_svc_url=$GIT_SVC_URL --watch
 
 ARGOCD_PASSWD=$(kubectl -n argo get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d)
 
