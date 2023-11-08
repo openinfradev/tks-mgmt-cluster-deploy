@@ -259,9 +259,7 @@ for dir in $(ls -l $ASSET_DIR/tks-flow/ |grep "^d" | grep -v dockerfiles |awk '{
 done
 
 log_info "Creating aws secret..."
-if [[ " ${CAPI_INFRA_PROVIDERS[*]} " =~ " aws " ]]; then
-	argo submit --from wftmpl/tks-create-aws-conf-secret -n argo -p aws_access_key_id=$AWS_ACCESS_KEY_ID -p aws_secret_access_key=$AWS_SECRET_ACCESS_KEY -p aws_account_id=$AWS_ACCOUNT_ID -p aws_user=$AWS_USER --watch
-fi
+argo submit --from wftmpl/tks-create-aws-conf-secret -n argo -p aws_access_key_id=$AWS_ACCESS_KEY_ID -p aws_secret_access_key=$AWS_SECRET_ACCESS_KEY -p aws_account_id=$AWS_ACCOUNT_ID -p aws_user=$AWS_USER --watch
 
 log_info "Create a Git service token secret..."
 argo submit --from wftmpl/tks-create-git-svc-token-secret -n argo -p user=$GIT_SVC_USERNAME -p token=$GIT_SVC_TOKEN -p git_svc_type=$GIT_SVC_TYPE -p git_svc_url=$GIT_SVC_URL --watch

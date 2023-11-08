@@ -163,6 +163,10 @@ if [ $TKS_ADMIN_CLUSTER_INFRA_PROVIDER == "byoh" ]; then
        export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
        gum spin --spinner dot --title "Reinstalling BYOH infra provider..." -- clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}") --wait-providers
 
+       kubectl patch deploy -n byoh-system  byoh-controller-manager --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value":"1000Mi"}]'
+       deployment.apps/byoh-controller-manager patched
+       kubectl patch deploy -n byoh-system  byoh-controller-manager --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/cpu", "value":"1000m"}]'
+
        ./06_make_tks-admin_self-managing.sh
 
        log_info "1. Generate byoh script and run byoh-hostagent on target hosts."
