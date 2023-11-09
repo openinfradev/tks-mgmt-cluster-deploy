@@ -4,10 +4,8 @@ set -e
 
 source lib/common.sh
 
-export KUBECONFIG=~/.kube/config
-
-##TODO: add workflow-template for tks-admin-tools
-
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+export KUBECONFIG=$SCRIPT_DIR/output/kubeconfig_$CLUSTER_NAME
 
 log_info "Calling workflow to install admin-tools(keycloak, harbor, etc)..."
 
