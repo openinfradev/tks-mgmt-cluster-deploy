@@ -4,8 +4,10 @@ set -e
 
 source lib/common.sh
 
+export NODE_IP
+
 GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
-GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+GITEA_NODE_IP=$NODE_IP
 
 kubectl delete secret byoh-hostagent-install-template -n argo || true
 cp templates/install_byoh_hostagent.sh.template templates/install_byoh_hostagent.sh.template.orig

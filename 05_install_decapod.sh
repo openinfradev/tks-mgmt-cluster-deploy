@@ -12,7 +12,7 @@ fi
 
 ASSET_DIR=$1
 HELM_VALUE_FILE=$2
-export KUBECONFIG=~/.kube/config
+export KUBECONFIG=./output/kubeconfig_tks-admin
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 function github_create_repo() {
@@ -136,6 +136,7 @@ function install_gitea_on_admin_cluster() {
 	export DATABASE_PASSWORD
 	export GITEA_ADMIN_USER
 	export GITEA_ADMIN_PASSWORD
+	export NODE_IP
 	cat templates/helm-gitea.vo.template | envsubst > helm-values/gitea.vo
 
 	helm upgrade -i gitea $ASSET_DIR/gitea-helm/gitea -f $SCRIPT_DIR/helm-values/gitea.vo -n gitea
@@ -146,7 +147,7 @@ function install_gitea_on_admin_cluster() {
 
 	GIT_SVC_HTTP="http"
 	GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
-	GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+	GITEA_NODE_IP=$NODE_IP
 	GIT_SVC_BASE_URL="$GITEA_NODE_IP:$GITEA_NODE_PORT"
 	if [ -n ${GIT_SVC_TOKEN+x} ]; then
 	        curl -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/users/$GITEA_ADMIN_USER/tokens/tks-admin
@@ -226,7 +227,8 @@ if [ "$GIT_SVC_TYPE" = "gitea" ];then
 	git commit -m "${CLUSTER_NAME}"
 	GIT_SVC_HTTP="http"
 	GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http)
-	GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
+	export NODE_IP
+	GITEA_NODE_IP=NODE_IP
 	GIT_SVC_BASE_URL="$GITEA_NODE_IP:$GITEA_NODE_PORT"
 	git remote add gitea $GIT_SVC_HTTP://$(echo -n $GIT_SVC_TOKEN)@${GIT_SVC_BASE_URL}/${GIT_SVC_USERNAME}/decapod-bootstrap
 	git push gitea main:main

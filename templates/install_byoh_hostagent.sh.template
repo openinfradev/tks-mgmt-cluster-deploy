@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-BYOH_HOSTAGENT_BINARY_BASE_URL=http://${GITEA_NODE_IP}:${GITEA_NODE_PORT}/api/packages/${GIT_SVC_USERNAME}/generic/byoh_hostagent
-BYOH_HOSTAGENT_CHECKSUM=${HOSTAGENT_CHECKSUM}
+BYOH_HOSTAGENT_BINARY_BASE_URL=http://ip-10-0-11-179.ap-northeast-2.compute.internal:32413/api/packages/decapod10/generic/byoh_hostagent
+BYOH_HOSTAGENT_CHECKSUM=9df55eb53ed3b786482ef2f95277dc93815e5138
 BOOTSTRAP_KUBECONFIG="${BOOTSTRAP_KUBECONFIG}"
 
 check_if_supported_os() {
@@ -31,7 +31,7 @@ check_if_supported_os() {
 }
 
 download_byoh_agent() {
-	curl -L $BYOH_HOSTAGENT_BINARY_BASE_URL/${BYOH_TKS_VERSION}/byoh-hostagent-linux-amd64 -o byoh-hostagent
+	curl -L $BYOH_HOSTAGENT_BINARY_BASE_URL/v0.4.0-tks-20231017/byoh-hostagent-linux-amd64 -o byoh-hostagent
 	echo "$BYOH_HOSTAGENT_CHECKSUM byoh-hostagent" | sha1sum --check
 }
 
