@@ -26,7 +26,7 @@ machinePool:
   maxSize: 3
   rootVolume:
     size: 200
-    type: gp2
+    type: gp3
   labels:
     taco-tks: enabled
     taco-lma: enabled
