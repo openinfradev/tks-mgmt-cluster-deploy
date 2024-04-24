@@ -4,13 +4,13 @@ cluster:
   - 10.233.64.0/18
   serviceCidrBlocks:
   - 10.233.0.0/18
-  kubernetesVersion: v1.25.9
+  kubernetesVersion: ${ADMIN_KUBE_VERSION}
 
 kubeVip:
   enabled: false
 
 byoCluster:
-  bundleLookupBaseRegistry: harbor.taco-cat.xyz/cluster_api_provider_bringyourownhost
+  bundleLookupBaseRegistry: ${REGISTRY}
   controlPlaneEndpoint:
     host: 192.168.2.1
     port: 6443
@@ -40,6 +40,11 @@ kubeadmControlPlane:
         oidc-issuer-url: https://keycloak.domain.com/auth/realms/tks
         oidc-username-claim: preferred_username
         oidc-username-prefix: "-"
+    etcd:
+      local:
+        imageRepository: "${BOOTSTRAP_CLUSTER_SERVER_IP}:5000"
+        imageTag: "3.5.10-0"
+    imageRepository: "${BOOTSTRAP_CLUSTER_SERVER_IP}:5000"
 
 machineDeployment:
 - name: tks

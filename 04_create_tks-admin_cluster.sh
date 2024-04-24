@@ -3,6 +3,7 @@
 set -e
 
 source lib/common.sh
+source lib/capi.sh
 
 if [ -z "$1" ] || [ -z "$2" ]
   then
@@ -16,6 +17,10 @@ HELM_VALUE_FILE=$2
 HELM_VALUE_K8S_ADDONS="--set cni.calico.enabled=true"
 IS_MANAGED_CLUSTER="false"
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+YQ_ASSETS_DIR="$ASSET_DIR/yq/$(ls $ASSET_DIR/yq | grep v)"
+YQ_PATH="$YQ_ASSETS_DIR/yq_linux_amd64"
+chmod +x $YQ_PATH
 
 export KUBECONFIG=~/.kube/config
 
@@ -83,6 +88,7 @@ EOF
 		else
 			clusterctl get kubeconfig $CLUSTER_NAME > output/kubeconfig_$CLUSTER_NAME
 			chmod 600 output/kubeconfig_$CLUSTER_NAME
+			export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 			helm upgrade -i k8s-addons $ASSET_DIR/taco-helm/kubernetes-addons $HELM_VALUE_K8S_ADDONS
 			helm upgrade -i aws-ebs-csi-driver --namespace kube-system $ASSET_DIR/aws-ebs-csi-driver-helm/aws-ebs-csi-driver
 		fi
@@ -93,7 +99,7 @@ EOF
 		chmod 600 output/kubeconfig_$CLUSTER_NAME
 		export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 		kubectl apply -f $ASSET_DIR/calico/calico.yaml
-		helm upgrade -i local-path-provisioner --namespace kube-system --set storageClass.name=taco-storage $ASSET_DIR/local-path-provisioner/deploy/chart/local-path-provisioner
+		helm upgrade -i local-path-provisioner --namespace kube-system --set storageClass.name=taco-storage --set image.repository=${BOOTSTRAP_CLUSTER_SERVER_IP}:5000/local-path-provisioner  $ASSET_DIR/local-path-provisioner/deploy/chart/local-path-provisioner
 		;;
 esac
 
@@ -102,66 +108,48 @@ for node in $(kubectl get no -o jsonpath='{.items[*].metadata.name}');do
 	kubectl wait --for=condition=Ready no/$node
 done
 echo "-----"
+case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
+	"byoh")
+		log_info "remove taint from the interim node in BYOH"
+		for no in $(kubectl get no -o name); do
+			BYOH_TMP_NODE=${no#*/}
+			kubectl taint nodes $no node-role.kubernetes.io/control-plane:NoSchedule- || true
+		done
+		;;
+esac
+
 kubectl get no
 log_info  "Make sure all node status are ready"
 
-install_capi_to_admin_cluster() {
-	export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
-	log_info "Initializing cluster API provider components in TKS admin cluster"
-	for provider in ${CAPI_INFRA_PROVIDERS[@]}; do
-		case $provider in
-			"aws")
-				export AWS_REGION
-				export AWS_ACCESS_KEY_ID
-				export AWS_SECRET_ACCESS_KEY
-
-				export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
-				export EXP_MACHINE_POOL=true
-				export CAPA_EKS_IAM=true
-				export CAPA_EKS_ADD_ROLES=true
-
-				CAPI_PROVIDER_NS=capa-system
-				;;
-			"byoh")
-				CAPI_PROVIDER_NS=byoh-system
-				;;
-		esac
-	done
-
-	case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
-		"byoh")
-			for no in $(kubectl get no -o name); do
-				BYOH_TMP_NODE=${no#*/}
-				kubectl taint nodes $no node-role.kubernetes.io/control-plane:NoSchedule- || true
-			done
-			;;
-	esac
-	gum spin --spinner dot --title "Waiting for providers to be installed..." -- clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}") --wait-providers
-}
-
-install_capi_to_admin_cluster
+log_info "Initializing cluster API provider components in TKS admin cluster"
+prepare_capi_providers admin ${BOOTSTRAP_CLUSTER_SERVER_IP}:5000
+install_capi_providers admin output/kubeconfig_$CLUSTER_NAME
 
 move_byoh_resources() {
 	rc_kind=$1
+	src_k8s_kubeconfig=$2
+	dst_k8s_kubeconfig=$3
 
 	log_info "Move $rc_kind BYOH resources to the admin cluster"
 
-	export KUBECONFIG=~/.kube/config
-	for rc in $(kubectl get $rc_kind -o name); do
+	for rc in $(kubectl get --kubeconfig $src_k8s_kubeconfig $rc_kind -o name); do
 		rc_file=${rc#*/}
-		kubectl get $rc -o yaml | egrep -v 'uid|resourceVersion|creationTimestamp|generation' > output/$rc_kind-"$rc_file".yaml
-		kubectl apply --kubeconfig output/kubeconfig_$CLUSTER_NAME -f output/$rc_kind-"$rc_file".yaml
+		kubectl get --kubeconfig $src_k8s_kubeconfig $rc -o yaml | egrep -v 'uid|resourceVersion|creationTimestamp|generation' > output/$rc_kind-"$rc_file".yaml
+		kubectl apply --kubeconfig $dst_k8s_kubeconfig -f output/$rc_kind-"$rc_file".yaml
 	done
 }
 
 if [ $TKS_ADMIN_CLUSTER_INFRA_PROVIDER == "byoh" ]; then
-       gum spin --spinner dot --title "Deleting BYOH infra provider for a moment..." -- clusterctl delete --infrastructure byoh
+       log_info "Deleting BYOH infra provider for a moment..."
+       kubectl delete -f output/admin-byoh-infra.yaml
+       ## XXX: check no pod in byoh-system
 
-       move_byoh_resources byoh
-       move_byoh_resources k8sinstallerconfigtemplates
+       move_byoh_resources byoh ~/.kube/config output/kubeconfig_$CLUSTER_NAME
+       move_byoh_resources k8sinstallerconfigtemplates ~/.kube/config output/kubeconfig_$CLUSTER_NAME
 
-       export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
-       gum spin --spinner dot --title "Reinstalling BYOH infra provider..." -- clusterctl init --infrastructure $(printf -v joined '%s,' "${CAPI_INFRA_PROVIDERS[@]}"; echo "${joined%,}") --wait-providers
+       kubectl apply -f output/admin-byoh-infra.yaml
+       sleep 10
+       ./util/wait_for_all_pods_in_ns.sh byoh-system
 
        kubectl patch deploy -n byoh-system  byoh-controller-manager --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value":"1000Mi"}]'
        kubectl patch deploy -n byoh-system  byoh-controller-manager --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/cpu", "value":"1000m"}]'

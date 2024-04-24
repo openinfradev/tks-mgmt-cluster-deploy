@@ -37,3 +37,5 @@ DATABASE_PASSWORD=secretPassword
 GITEA_ADMIN_USER=tks-admin
 GITEA_ADMIN_PASSWORD=secretPassword
 
+# Admin Cluster
+ADMIN_KUBE_VERSION=1.26.14

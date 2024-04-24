@@ -1,8 +1,13 @@
 #!/bin/bash
 set -e
 
+## TODO
+# insecure registry
+
 BYOH_HOSTAGENT_BINARY_BASE_URL=http://${GITEA_NODE_IP}:${GITEA_NODE_PORT}/api/packages/${GIT_SVC_USERNAME}/generic/byoh_hostagent
 BYOH_HOSTAGENT_CHECKSUM=${HOSTAGENT_CHECKSUM}
+IMGPKG_BINARY_BASE_URL=http://${GITEA_NODE_IP}:${GITEA_NODE_PORT}/api/packages/${GIT_SVC_USERNAME}/generic/imgpkg
+IMGPKG_CHECKSUM=${IMGPKG_CHECKSUM}
 BOOTSTRAP_KUBECONFIG="${BOOTSTRAP_KUBECONFIG}"
 
 check_if_supported_os() {
@@ -33,6 +38,8 @@ check_if_supported_os() {
 download_byoh_agent() {
 	curl -L $BYOH_HOSTAGENT_BINARY_BASE_URL/${BYOH_TKS_VERSION}/byoh-hostagent-linux-amd64 -o byoh-hostagent
 	echo "$BYOH_HOSTAGENT_CHECKSUM byoh-hostagent" | sha1sum --check
+	curl -L $IMGPKG_BINARY_BASE_URL/${BYOH_TKS_VERSION}/imgpkg -o imgpkg
+	echo "$IMGPKG_CHECKSUM imgpkg" | sha1sum --check
 }
 
 prepare_rocky_byoh_node() {
@@ -67,11 +74,27 @@ prepare_byoh_node() {
 			prepare_ubuntu_byoh_node
 			;;
 	esac
+
+	sudo mkdir /etc/containerd || true
+	cat << EOF | sudo tee /etc/containerd/config.toml
+version = 2
+
+[plugins]
+  [plugins."io.containerd.grpc.v1.cri"]
+    sandbox_image = "${TARGET_REGISTRY}/pause:3.9"
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+EOF
+	REGISTRY_DIR="/etc/containerd/certs.d/${TARGET_REGISTRY}"
+	sudo mkdir -p $REGISTRY_DIR || true
+	cat <<EOF | sudo tee "${REGISTRY_DIR}/hosts.toml"
+[host."http://${TARGET_REGISTRY}"]
+EOF
 }
 
 run_byoh_agent() {
-	sudo cp byoh-hostagent /usr/local/bin/byoh-hostagent
-	sudo chmod +x /usr/local/bin/byoh-hostagent
+	sudo cp byoh-hostagent imgpkg /usr/local/bin/
+	sudo chmod +x /usr/local/bin/byoh-hostagent /usr/local/bin/imgpkg
 
 	cat << EOF | sudo tee /etc/systemd/system/byoh-hostagent.service
 [Unit]

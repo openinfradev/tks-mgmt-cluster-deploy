@@ -1,0 +1,26 @@
+installCRDs: true
+
+image:
+  registry: ${TARGET_REGISTRY}
+  repository: cert-manager-controller
+
+webhook:
+  image:
+    registry: ${TARGET_REGISTRY}
+    repository: cert-manager-webhook
+
+cainjector:
+  image:
+    registry: ${TARGET_REGISTRY}
+    repository: cert-manager-cainjector
+
+acmesolver:
+  image:
+    registry: ${TARGET_REGISTRY}
+    repository: cert-manager-acmesolver
+
+startupapicheck:
+  enabled: false
+  image:
+    registry: ${TARGET_REGISTRY}
+    repository: cert-manager-ctl

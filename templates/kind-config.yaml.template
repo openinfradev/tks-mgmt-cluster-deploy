@@ -8,6 +8,10 @@ nodes:
     apiServer:
       certSANs:
       - ${BOOTSTRAP_CLUSTER_SERVER_IP}
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry]
+    config_path = "/etc/containerd/certs.d"
 networking:
   apiServerAddress: "0.0.0.0"
   apiServerPort: 6443

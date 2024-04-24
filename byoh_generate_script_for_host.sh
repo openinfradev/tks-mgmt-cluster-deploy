@@ -5,18 +5,19 @@ set -e
 source lib/common.sh
 
 function usage {
-        echo -e "\nUsage: $0 <kubeconfig> <hostname> [--output OUTPUT_SCRIPT_PATH]"
+        echo -e "\nUsage: $0 <kubeconfig> <container registry> <hostname> [--output OUTPUT_SCRIPT_PATH]"
 	echo -e "\n\tOUTPUT_SCRIPT_PATH (default): output/install_byoh_hostagent-<hostname>.sh"
         exit 1
 }
 
-[[ $# -ge 2 ]] || usage 
+[[ $# -ge 3 ]] || usage
 
 inarray=$(echo ${CAPI_INFRA_PROVIDERS[@]} | grep -ow "byoh" | wc -w)
 [[ $inarray -ne 0 ]] || log_error "byoh infra provider is not configured"
 
 export KUBECONFIG=$1
-HOSTNAME=$2
+export TARGET_REGISTRY=$2
+HOSTNAME=$3
 shift
 OUTPUT_SCRIPT_PATH=output/install_byoh_hostagent-$HOSTNAME.sh
 
@@ -78,7 +79,7 @@ sleep 3
 kubectl get bootstrapkubeconfig bootstrap-kubeconfig-$HOSTNAME -n default -o=jsonpath='{.status.bootstrapKubeconfigData}' > output/bootstrap-kubeconfig-$HOSTNAME.conf
 
 if kubectl get no | grep kind; then
-	export KIND_PORT=$(sudo docker inspect kind-control-plane -f '{{ $published := index .NetworkSettings.Ports "6443/tcp" }}{{ range $published }}{{ .HostPort }}{{ end }}')
+	export KIND_PORT=$(sudo podman inspect kind-control-plane -f '{{ $published := index .NetworkSettings.Ports "6443/tcp" }}{{ range $published }}{{ .HostPort }}{{ end }}')
 	sed -i 's/    server\:.*/    server\: https\:\/\/'"$BOOTSTRAP_CLUSTER_SERVER_IP:$KIND_PORT"'/g' output/bootstrap-kubeconfig-$HOSTNAME.conf
 fi
 
@@ -86,10 +87,9 @@ fi
 BOOTSTRAP_KUBECONFIG=$(cat output/bootstrap-kubeconfig-$HOSTNAME.conf | base64 -w 0)
 GITEA_NODE_PORT=$(kubectl get -n gitea -o jsonpath="{.spec.ports[0].nodePort}" services gitea-http 2>/dev/null) || true
 GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}') || true
-export BOOTSTRAP_KUBECONFIG GITEA_NODE_IP GITEA_NODE_PORT GIT_SVC_USERNAME
-
-envsubst '$BOOTSTRAP_KUBECONFIG $GITEA_NODE_IP $GITEA_NODE_PORT $GIT_SVC_USERNAME' < ./templates/install_byoh_hostagent.sh.template >$OUTPUT_SCRIPT_PATH
+export BOOTSTRAP_CLUSTER_SERVER_IP BOOTSTRAP_KUBECONFIG GITEA_NODE_IP GITEA_NODE_PORT GIT_SVC_USERNAME
+envsubst '$BOOTSTRAP_CLUSTER_SERVER_IP $BOOTSTRAP_KUBECONFIG $GITEA_NODE_IP $GITEA_NODE_PORT $GIT_SVC_USERNAME $TARGET_REGISTRY' < ./templates/install_byoh_hostagent.sh.template >$OUTPUT_SCRIPT_PATH
 chmod +x $OUTPUT_SCRIPT_PATH
 
 log_info "Copy below files to each host and run a script!"
-echo "$OUTPUT_SCRIPT_PATH output/byoh-hostagent"
+echo "$OUTPUT_SCRIPT_PATH output/byoh-hostagent output/imgpkg"

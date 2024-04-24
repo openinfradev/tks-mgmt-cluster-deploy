@@ -5,9 +5,9 @@ import sys
 import tempfile
 import yaml
 
-def pull_docker_image(image):
+def pull_podman_image(image):
     print("===>>> Pulling image: " + image)
-    pull_image = subprocess.Popen(['docker','pull',image], \
+    pull_image = subprocess.Popen(['podman','pull',image], \
                                   stdout=subprocess.PIPE)
     (out,err) = pull_image.communicate()
     print(out)
@@ -28,18 +28,18 @@ def download_container_images_from_yaml(yamlFile):
                         if 'containers' in spec:
                             for container in spec['containers']:
                                 print("Case 1 - container: {}".format(container['image']))
-                                pull_docker_image(container['image'])
+                                pull_podman_image(container['image'])
                         if 'initContainers' in spec:
                             for initcontainer in spec['initContainers']:
                                 print("Case 2 - Init container: {}".format(initcontainer['image']))
-                                pull_docker_image(initcontainer['image'])
+                                pull_podman_image(initcontainer['image'])
                 if 'containers' in spec:
                     for container in spec['containers']:
                         print("Case 3 - spec container: {}".format(container['image']))
-                        pull_docker_image(container['image'])
+                        pull_podman_image(container['image'])
                 if 'image' in spec:
                     print("Case 4 - spec image: {}".format(spec['image']))
-                    pull_docker_image(spec['image'])
+                    pull_podman_image(spec['image'])
 
 def main():
     if len(sys.argv) != 2:

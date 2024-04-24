@@ -6,11 +6,15 @@ ARGOCD_APPS_CHART_VERSION="1.3.0"
 CAPI_RELEASE="v1beta1"
 case $CAPI_RELEASE in
         "v1beta1")
-                CAPI_VERSION="v1.5.0"
-                CAPA_VERSION="v2.2.1"
+                CAPI_VERSION="v1.5.5"
+                CAPA_VERSION="v2.2.5"
                 BYOH_VERSION="v0.5.0"
-                BYOH_TKS_VERSION="v0.4.0-tks-20231017"
+                BYOH_TKS_VERSION="v0.5.0-tks-20240403"
                 ;;
 esac
+CAPI_OPERATOR_VERSION="v0.9.0"
+IMGPKG_VERSION="v0.36.9"
 
-KIND_NODE_IMAGE_TAG="v1.25.11@sha256:227fa11ce74ea76a0474eeefb84cb75d8dad1b08638371ecf0e86259b35be0c8"
+KIND_NODE_IMAGE_TAG="v1.27.11@sha256:681253009e68069b8e01aad36a1e0fa8cf18bb0ab3e5c4069b2e65cafdd70843"
+
+ADMIN_CALICO_VERSION="v3.26.1"
