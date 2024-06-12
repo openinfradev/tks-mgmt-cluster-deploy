@@ -209,10 +209,10 @@ create_admin_cluster_repo
 cd ..
 rm -rf git_tmps
 
+export KUBECONFIG=$SCRIPT_DIR/output/kubeconfig_$CLUSTER_NAME
 gum spin --spinner dot --title "Rendering decapod-manifests for $CLUSTER_NAME..." -- ./util/decapod-render-manifests.sh $CLUSTER_NAME
 
 log_info "Installing Decapod-bootstrap..."
-export KUBECONFIG=$SCRIPT_DIR/output/kubeconfig_$CLUSTER_NAME
 kubectl create ns argo || true
 
 if [ "$GIT_SVC_TYPE" = "gitea" ];then
