@@ -4,16 +4,15 @@ set -e
 
 source lib/common.sh
 
-if [ -z "$1" ] || [ -z "$2" ]
-  then
-    echo "usage: $0 <assets dir> <values.yaml for admin cluster>"
-    exit 1
+if [ -z "$1" ] || [ -z "$2" ]; then
+	echo "usage: $0 <assets dir> <values.yaml for admin cluster>"
+	exit 1
 fi
 
 ASSET_DIR=$1
 HELM_VALUE_FILE=$2
 export KUBECONFIG=~/.kube/config
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 function github_create_repo() {
 	echo $GIT_SVC_TOKEN | gh auth login --with-token
@@ -54,7 +53,7 @@ function gitea_create_repo() {
 }
 
 function create_admin_cluster_repo() {
-	if [ "$GIT_SVC_TYPE" = "gitea" ];then
+	if [ "$GIT_SVC_TYPE" = "gitea" ]; then
 		gitea_create_repo
 	else
 		GIT_SVC_HTTP=${GIT_SVC_URL%://*}
@@ -65,25 +64,25 @@ function create_admin_cluster_repo() {
 
 	git clone -b ${TKS_RELEASE} $GIT_SVC_HTTP://$(echo -n $GIT_SVC_TOKEN)@${GIT_SVC_BASE_URL}/${GIT_SVC_USERNAME}/decapod-site.git
 	cd decapod-site
-	echo "Decapod Site Repo Revision: "${TKS_RELEASE} > META
-	echo "Decapod Site Repo Commit: "$(git rev-parse HEAD) >> META
+	echo "Decapod Site Repo Revision: "${TKS_RELEASE} >META
+	echo "Decapod Site Repo Commit: "$(git rev-parse HEAD) >>META
 
 	rm -rf .github
 
 	case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
-		"aws")
-			if grep -Fq "eksEnabled: true" $SCRIPT_DIR/$HELM_VALUE_FILE;then
-				TEMPLATE_NAME="eks-reference"
-			else
-				TEMPLATE_NAME="aws-reference"
-			fi
-			;;
+	"aws")
+		if grep -Fq "eksEnabled: true" $SCRIPT_DIR/$HELM_VALUE_FILE; then
+			TEMPLATE_NAME="eks-reference"
+		else
+			TEMPLATE_NAME="aws-reference"
+		fi
+		;;
 
-		"byoh")
-			TEMPLATE_NAME="byoh-reference"
-			;;
+	"byoh")
+		TEMPLATE_NAME="byoh-reference"
+		;;
 	esac
-	echo "Decapod template: $TEMPLATE_NAME" >> META
+	echo "Decapod template: $TEMPLATE_NAME" >>META
 
 	for dir in *-reference; do
 		[ "$dir" = "$TEMPLATE_NAME" ] && mv $dir $CLUSTER_NAME && continue
@@ -95,7 +94,7 @@ function create_admin_cluster_repo() {
 	export DATABASE_PORT
 	export DATABASE_USER
 	export DATABASE_PASSWORD
-	envsubst < $CLUSTER_NAME/decapod-controller/site-values.yaml > site-values.yaml.tmp && mv site-values.yaml.tmp $CLUSTER_NAME/decapod-controller/site-values.yaml
+	envsubst <$CLUSTER_NAME/decapod-controller/site-values.yaml >site-values.yaml.tmp && mv site-values.yaml.tmp $CLUSTER_NAME/decapod-controller/site-values.yaml
 
 	git config --global user.email "taco_support@sk.com"
 	git config --global user.name "SKTelecom TACO"
@@ -113,7 +112,7 @@ function install_postgresql_on_admin_cluster() {
 	kubectl create ns tks-db || true
 
 	export DATABASE_PASSWORD
-	cat templates/helm-postgresql.vo.template | envsubst > helm-values/postgresql.vo
+	cat templates/helm-postgresql.vo.template | envsubst >helm-values/postgresql.vo
 
 	helm upgrade -i postgresql $ASSET_DIR/postgresql-helm/postgresql -f $SCRIPT_DIR/helm-values/postgresql.vo -n tks-db
 
@@ -136,7 +135,7 @@ function install_gitea_on_admin_cluster() {
 	export DATABASE_PASSWORD
 	export GITEA_ADMIN_USER
 	export GITEA_ADMIN_PASSWORD
-	cat templates/helm-gitea.vo.template | envsubst > helm-values/gitea.vo
+	cat templates/helm-gitea.vo.template | envsubst >helm-values/gitea.vo
 
 	helm upgrade -i gitea $ASSET_DIR/gitea-helm/gitea -f $SCRIPT_DIR/helm-values/gitea.vo -n gitea
 	./util/wait_for_all_pods_in_ns.sh gitea
@@ -149,11 +148,11 @@ function install_gitea_on_admin_cluster() {
 	GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].address}')
 	GIT_SVC_BASE_URL="$GITEA_NODE_IP:$GITEA_NODE_PORT"
 	if [ -n ${GIT_SVC_TOKEN+x} ]; then
-	        curl -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/users/$GITEA_ADMIN_USER/tokens/tks-admin
+		curl -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/users/$GITEA_ADMIN_USER/tokens/tks-admin
 		sed -i '/GIT_SVC_TOKEN/d' $SCRIPT_DIR/conf.sh
 	fi
 	export GIT_SVC_TOKEN=$(curl -sH "Content-Type: application/json" -d '{"name":"tks-admin", "scopes":["repo","admin:org","admin:repo_hook","admin:org_hook","delete_repo","package","admin:application"]}' -u $GITEA_ADMIN_USER:$GITEA_ADMIN_PASSWORD $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/users/$GITEA_ADMIN_USER/tokens | $JQ_ASSETS_DIR/jq-linux64 -r .sha1)
-	echo GIT_SVC_TOKEN=$GIT_SVC_TOKEN >> $SCRIPT_DIR/conf.sh
+	echo GIT_SVC_TOKEN=$GIT_SVC_TOKEN >>$SCRIPT_DIR/conf.sh
 
 	curl -X 'POST' $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/v1/orgs?token=${GIT_SVC_TOKEN} -H 'accept: application/json' -H 'Content-Type: application/json' -d "{ \"username\": \"$GIT_SVC_USERNAME\" }"
 	export KUBECONFIG=~/.kube/config
@@ -195,7 +194,7 @@ if [ -z "$DATABASE_HOST" ]; then
 	install_postgresql_on_admin_cluster
 fi
 
-if [ "$GIT_SVC_TYPE" = "gitea" ];then
+if [ "$GIT_SVC_TYPE" = "gitea" ]; then
 	log_info "Installing Gitea on the admin cluster..."
 	install_gitea_on_admin_cluster
 fi
@@ -203,19 +202,20 @@ fi
 log_info "Cloning/Creating Decapod Base and Site git repos..."
 clone_or_create_decapod_repos
 log_info "Creating Admin cluster git repos..."
-rm -rf git_tmps; mkdir git_tmps
+rm -rf git_tmps
+mkdir git_tmps
 cd git_tmps
 create_admin_cluster_repo
 cd ..
 rm -rf git_tmps
 
+export KUBECONFIG=$SCRIPT_DIR/output/kubeconfig_$CLUSTER_NAME
 gum spin --spinner dot --title "Rendering decapod-manifests for $CLUSTER_NAME..." -- ./util/decapod-render-manifests.sh $CLUSTER_NAME
 
 log_info "Installing Decapod-bootstrap..."
-export KUBECONFIG=$SCRIPT_DIR/output/kubeconfig_$CLUSTER_NAME
 kubectl create ns argo || true
 
-if [ "$GIT_SVC_TYPE" = "gitea" ];then
+if [ "$GIT_SVC_TYPE" = "gitea" ]; then
 	cd $ASSET_DIR/decapod-bootstrap
 	GIT_SVC_HTTP=${GIT_SVC_URL%://*}
 	GIT_SVC_BASE_URL=${GIT_SVC_URL#*//}
@@ -254,7 +254,7 @@ log_info "All applications for bootstrap have been installed successfully"
 
 log_info "Creating workflow templates from decapod and tks-flow..."
 kubectl apply -R -f $ASSET_DIR/decapod-flow/templates -n argo
-for dir in $(ls -l $ASSET_DIR/tks-flow/ |grep "^d" | grep -v dockerfiles |awk '{print $9}'); do
+for dir in $(ls -l $ASSET_DIR/tks-flow/ | grep "^d" | grep -v dockerfiles | awk '{print $9}'); do
 	kubectl apply -R -f $ASSET_DIR/tks-flow/$dir -n argo
 done
 
@@ -280,57 +280,57 @@ function argocd_add_admin_cluster() {
 }
 
 case $TKS_ADMIN_CLUSTER_INFRA_PROVIDER in
-	"aws")
-		if grep -Fq "eksEnabled: true" $SCRIPT_DIR/$HELM_VALUE_FILE;then
-			kubectl patch svc -n argo argo-cd-argocd-server -p  '{"spec":{"type":"LoadBalancer"}}'
+"aws")
+	if grep -Fq "eksEnabled: true" $SCRIPT_DIR/$HELM_VALUE_FILE; then
+		kubectl patch svc -n argo argo-cd-argocd-server -p '{"spec":{"type":"LoadBalancer"}}'
+		sleep 5
+		ARGOCD_SERVER=$(kubectl get svc -n argo argo-cd-argocd-server -ojsonpath='{.status.loadBalancer.ingress[0].hostname}')
+		set +e
+		while (true); do
+			nslookup $ARGOCD_SERVER >/dev/null 2>&1
+			status=$?
+
+			if test $status -eq 0; then
+				break
+			fi
 			sleep 5
-			ARGOCD_SERVER=$(kubectl get svc -n argo argo-cd-argocd-server -ojsonpath='{.status.loadBalancer.ingress[0].hostname}')
-			set +e
-			while (true); do
-				nslookup $ARGOCD_SERVER >/dev/null 2>&1
-				status=$?
+		done
+		set -e
 
-				if test $status -eq 0; then
-					break
-				fi
-				sleep 5
-			done
-			set -e
+		ARGOCD_PORT=80
+		argocd_add_admin_cluster
+		kubectl patch svc -n argo argo-cd-argocd-server -p '{"spec":{"type":"NodePort"}}'
+	else
+		ARGOCD_SERVER=localhost
+		ARGOCD_PORT=30080
 
-			ARGOCD_PORT=80
-			argocd_add_admin_cluster
-			kubectl patch svc -n argo argo-cd-argocd-server -p  '{"spec":{"type":"NodePort"}}'
-		else
-			ARGOCD_SERVER=localhost
-			ARGOCD_PORT=30080
+		kubectl port-forward -n argo svc/argo-cd-argocd-server 30080:80 2>&1 >/dev/null &
+		ARGOCD_KUBECTL_PID=$!
+		sleep 3
+		argocd_add_admin_cluster
+		kill $ARGOCD_KUBECTL_PID
+	fi
+	;;
 
-			kubectl port-forward -n argo svc/argo-cd-argocd-server 30080:80 2>&1 > /dev/null &
-			ARGOCD_KUBECTL_PID=$!
-			sleep 3
-			argocd_add_admin_cluster
-			kill $ARGOCD_KUBECTL_PID
-		fi
-		;;
+"byoh")
+	ARGOCD_SERVER=$(kubectl get no -ojsonpath='{.items[0].status.addresses[?(@.type == "InternalIP")].address}')
+	ARGOCD_PORT=30080
+	argocd_add_admin_cluster
 
-	"byoh")
-			ARGOCD_SERVER=$(kubectl get no -ojsonpath='{.items[0].status.addresses[?(@.type == "InternalIP")].address}')
-			ARGOCD_PORT=30080
-			argocd_add_admin_cluster
-
-			# BYOH
-			curl -v --user tks_admin:$GIT_SVC_TOKEN -X DELETE $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/packages/decapod10/generic/byoh_hostagent/$BYOH_TKS_VERSION/byoh-hostagent-linux-amd64 || true
-			curl -v --user tks_admin:$GIT_SVC_TOKEN --upload-file output/byoh-hostagent $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/packages/decapod10/generic/byoh_hostagent/$BYOH_TKS_VERSION/byoh-hostagent-linux-amd64
-		;;
+	# BYOH
+	curl -v --user tks_admin:$GIT_SVC_TOKEN -X DELETE $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/packages/decapod10/generic/byoh_hostagent/$BYOH_TKS_VERSION/byoh-hostagent-linux-amd64 || true
+	curl -v --user tks_admin:$GIT_SVC_TOKEN --upload-file output/byoh-hostagent $GIT_SVC_HTTP://${GIT_SVC_BASE_URL}/api/packages/decapod10/generic/byoh_hostagent/$BYOH_TKS_VERSION/byoh-hostagent-linux-amd64
+	;;
 esac
 
 log_info "Copying TKS admin cluster kubeconfig secret to argo namespace"
 # Create TKS Kubeconfig for admin cluster
 TKS_KUBECONFIG_ADMIN="$SCRIPT_DIR/output/tks-kubeconfig_$CLUSTER_NAME"
-cat $KUBECONFIG | sed '/exec:/,+15d' > $TKS_KUBECONFIG_ADMIN
+cat $KUBECONFIG | sed '/exec:/,+15d' >$TKS_KUBECONFIG_ADMIN
 API_SERVER=$(grep server $TKS_KUBECONFIG_ADMIN | awk '{print tolower($2)}')
 ARGOCD_CLUSTER_SECRET=$(kubectl get secret -n argo | grep ${API_SERVER#*\/\/} | awk '{print $1}')
 CLIENT_TOKEN=$(kubectl get secret -n argo $ARGOCD_CLUSTER_SECRET -ojsonpath='{.data.config}' | base64 -d | $JQ_ASSETS_DIR/jq-linux64 -r .bearerToken)
-echo "    token: ${CLIENT_TOKEN}" >> $TKS_KUBECONFIG_ADMIN
+echo "    token: ${CLIENT_TOKEN}" >>$TKS_KUBECONFIG_ADMIN
 
 kubectl delete secret tks-admin-kubeconfig-secret -n argo || true
 kubectl create secret generic tks-admin-kubeconfig-secret -n argo --from-file=value=$TKS_KUBECONFIG_ADMIN
@@ -338,7 +338,7 @@ kubectl delete secret byoh-hostagent-install-template -n argo || true
 cp templates/install_byoh_hostagent.sh.template templates/install_byoh_hostagent.sh.template.orig
 HOSTAGENT_CHECKSUM=$(sha1sum output/byoh-hostagent | awk '{print $1}')
 export HOSTAGENT_CHECKSUM BYOH_TKS_VERSION GIT_SVC_USERNAME GITEA_NODE_PORT GITEA_NODE_IP
-envsubst '$HOSTAGENT_CHECKSUM $BYOH_TKS_VERSION $GIT_SVC_USERNAME $GITEA_NODE_IP $GITEA_NODE_PORT' < templates/install_byoh_hostagent.sh.template.orig > templates/install_byoh_hostagent.sh.template
+envsubst '$HOSTAGENT_CHECKSUM $BYOH_TKS_VERSION $GIT_SVC_USERNAME $GITEA_NODE_IP $GITEA_NODE_PORT' <templates/install_byoh_hostagent.sh.template.orig >templates/install_byoh_hostagent.sh.template
 kubectl create secret generic byoh-hostagent-install-template -n argo --from-file=agent-install-template=templates/install_byoh_hostagent.sh.template
 
 log_info "...Done"
