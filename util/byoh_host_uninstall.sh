@@ -4,9 +4,9 @@
 # copy this script to each host and run!
 
 if [ -z "$1" ]; then
-    echo "usage: $0 <bundle path>"
-    echo '- bundle path example /var/lib/byoh/bundles/harbor-cicd.taco-cat.xyz/cluster_api_provider_bringyourownhost/byoh-bundle-rocky_linux_8.7_x86-64_k8s\:v1.25.11/'
-    exit 1
+	echo "usage: $0 <bundle path>"
+	echo '- bundle path example /var/lib/byoh/bundles/harbor-cicd.taco-cat.xyz/cluster_api_provider_bringyourownhost/byoh-bundle-rocky_linux_8.7_x86-64_k8s\:v1.25.11/'
+	exit 1
 fi
 
 BUNDLE_PATH=$1
@@ -21,11 +21,11 @@ sudo systemctl stop kubelet && sudo systemctl disable kubelet && sudo systemctl 
 sudo systemctl stop containerd && sudo systemctl disable containerd && sudo systemctl daemon-reload
 
 ## removing containerd configurations and cni plugins
-sudo rm -rf /opt/cni/ && sudo rm -rf /opt/containerd/ &&  sudo tar tf "$BUNDLE_PATH/containerd.tar" | xargs -n 1 echo '/' | sed 's/ //g'  | grep -e '[^/]$' | xargs sudo rm -f
+sudo rm -rf /opt/cni/ && sudo rm -rf /opt/containerd/ && sudo tar tf "$BUNDLE_PATH/containerd.tar" | xargs -n 1 echo '/' | sed 's/ //g' | grep -e '[^/]$' | xargs sudo rm -f
 
 ## removing packages
 for pkg in kubeadm kubelet kubectl kubernetes-cni cri-tools; do
-        sudo yum remove $pkg -y
+	sudo yum remove $pkg -y
 done
 
 ## removing os configuration
