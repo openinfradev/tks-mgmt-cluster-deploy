@@ -93,7 +93,7 @@ EOF
 		chmod 600 output/kubeconfig_$CLUSTER_NAME
 		export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 		kubectl apply -f $ASSET_DIR/calico/calico.yaml
-		helm upgrade -i local-path-provisioner --namespace kube-system --set storageClass.name=taco-storage $ASSET_DIR/local-path-provisioner/deploy/chart/local-path-provisioner
+		helm upgrade -i local-path-provisioner --namespace kube-system --set storageClass.name=taco-storage --set image.repository=harbor.taco-cat.xyz/tks/local-path-provisioner --set image.tag=v0.0.27 --set helperImage.repository=harbor.taco-cat.xyz/tks/busybox --set helperImage.tag=1.34.1 -- $ASSET_DIR/local-path-provisioner/deploy/chart/local-path-provisioner
 		;;
 esac
 
