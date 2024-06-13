@@ -47,3 +47,4 @@ sudo sed -i 's/^SELINUX=permissive$/SELINUX=enforcing/' /etc/selinux/config
 sudo swapon -a && sudo sed -ri '/\sswap\s/s/^#?//' /etc/fstab
 
 sudo rm -rf $BUNDLE_PATH
+sudo rm -rf /var/lib/containerd/ /var/lib/cni/
