@@ -14,7 +14,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 ASSET_DIR=$1
 export KUBECONFIG=$2
 
-DECAPOD_BOOTSTRAP_COMMIT="3879b95a66176a06b7bd9b53cdc1a2075b988b1d"
+DECAPOD_BOOTSTRAP_COMMIT="a5fdda9309d1d0d21da0e358d89a118318d77dee"
 
 delete_argo() {
         ARGOCD_SERVER=$(kubectl get no -ojsonpath='{.items[0].status.addresses[?(@.type == "InternalIP")].address}')
