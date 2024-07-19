@@ -3,6 +3,8 @@ set -e
 
 BYOH_HOSTAGENT_BINARY_BASE_URL=http://${GITEA_NODE_IP}:${GITEA_NODE_PORT}/api/packages/${GIT_SVC_USERNAME}/generic/byoh_hostagent
 BYOH_HOSTAGENT_CHECKSUM=${HOSTAGENT_CHECKSUM}
+IMGPKG_BINARY_BASE_URL=http://${GITEA_NODE_IP}:${GITEA_NODE_PORT}/api/packages/${GIT_SVC_USERNAME}/generic/imgpkg
+IMGPKG_CHECKSUM=${IMGPKG_BIN_CHECKSUM}
 BOOTSTRAP_KUBECONFIG="${BOOTSTRAP_KUBECONFIG}"
 
 check_if_supported_os() {
@@ -33,6 +35,8 @@ check_if_supported_os() {
 download_byoh_agent() {
 	curl -L $BYOH_HOSTAGENT_BINARY_BASE_URL/${BYOH_TKS_VERSION}/byoh-hostagent-linux-amd64 -o byoh-hostagent
 	echo "$BYOH_HOSTAGENT_CHECKSUM byoh-hostagent" | sha1sum --check
+	curl -L $IMGPKG_BINARY_BASE_URL/${IMGPKG_VERSION}/imgpkg -o imgpkg
+	echo "$IMGPKG_CHECKSUM imgpkg" | sha1sum --check
 }
 
 prepare_rocky_byoh_node() {
@@ -70,8 +74,8 @@ prepare_byoh_node() {
 }
 
 run_byoh_agent() {
-	sudo cp byoh-hostagent /usr/local/bin/byoh-hostagent
-	sudo chmod +x /usr/local/bin/byoh-hostagent
+	sudo cp byoh-hostagent imgpkg /usr/local/bin/
+	sudo chmod +x /usr/local/bin/byoh-hostagent /usr/local/bin/imgpkg
 
 	cat << EOF | sudo tee /etc/systemd/system/byoh-hostagent.service
 [Unit]

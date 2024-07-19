@@ -9,7 +9,8 @@ GITEA_NODE_IP=$(kubectl get no -ojsonpath='{.items[0].status.addresses[0].addres
 
 kubectl delete secret byoh-hostagent-install-template -n argo || true
 cp templates/install_byoh_hostagent.sh.template templates/install_byoh_hostagent.sh.template.orig
-HOSTAGENT_CHECKSUM=$(sha1sum output/byoh-hostagent-linux-amd64 | awk '{print $1}')
-export HOSTAGENT_CHECKSUM BYOH_TKS_VERSION GIT_SVC_USERNAME GITEA_NODE_PORT GITEA_NODE_IP
-envsubst '$HOSTAGENT_CHECKSUM $BYOH_TKS_VERSION $GIT_SVC_USERNAME $GITEA_NODE_IP $GITEA_NODE_PORT' < templates/install_byoh_hostagent.sh.template.orig > templates/install_byoh_hostagent.sh.template
+HOSTAGENT_CHECKSUM=$(sha1sum output/byoh-hostagent | awk '{print $1}')
+IMGPKG_BIN_CHECKSUM=$(sha1sum output/imgpkg | awk '{print $1}')
+export HOSTAGENT_CHECKSUM IMGPKG_BIN_CHECKSUM BYOH_TKS_VERSION IMGPKG_VERSION GIT_SVC_USERNAME GITEA_NODE_PORT GITEA_NODE_IP
+envsubst '$HOSTAGENT_CHECKSUM $IMGPKG_BIN_CHECKSUM $BYOH_TKS_VERSION $IMGPKG_VERSION $GIT_SVC_USERNAME $GITEA_NODE_IP $GITEA_NODE_PORT' < templates/install_byoh_hostagent.sh.template.orig > templates/install_byoh_hostagent.sh.template
 kubectl create secret generic byoh-hostagent-install-template -n argo --from-file=agent-install-template=templates/install_byoh_hostagent.sh.template

@@ -13,6 +13,8 @@ ASSETS_DIR=$1
 KIND_ASSETS_DIR="$1/kind/$(ls $1/kind | grep v)"
 
 check_if_supported_os
+GUM_ASSETS_DIR="$ASSETS_DIR/gum/$(ls $ASSETS_DIR/gum | grep v)"
+sudo cp $GUM_ASSETS_DIR/gum_*/gum /usr/local/bin
 
 # TODO: check if the bootstrap cluster already exist.
 rm -rf ~/.kube/config
