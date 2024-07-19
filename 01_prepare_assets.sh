@@ -8,32 +8,32 @@ declare -a DOCKER_PKGS_UBUNTU=("containerd.io_1.6.21-1_amd64.deb" "docker-ce-cli
 declare -a DOCKER_PKGS_CENTOS=("containerd.io-1.6.21-3.1.el8.x86_64.rpm" "docker-ce-20.10.24-3.el8.x86_64.rpm" "docker-ce-cli-20.10.24-3.el8.x86_64.rpm" "docker-ce-rootless-extras-20.10.24-3.el8.x86_64.rpm" "docker-compose-plugin-2.19.1-1.el8.x86_64.rpm")
 
 # Github assets
-KIND_ASSETS_URL="https://github.com/kubernetes-sigs/kind/releases"
+KIND_ASSETS_URL="https://github.com/kubernetes-sigs/kind"
 KIND_ASSETS_FILES=(kind-linux-amd64)
 KIND_VERSION="v0.20.0"
-CAPI_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api/releases"
+CAPI_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api"
 CAPI_ASSETS_FILES=(metadata.yaml bootstrap-components.yaml cluster-api-components.yaml clusterctl-linux-amd64 control-plane-components.yaml core-components.yaml)
-CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases"
+CAPA_ASSETS_URL="https://github.com/kubernetes-sigs/cluster-api-provider-aws"
 CAPA_ASSETS_FILES=(metadata.yaml clusterawsadm-linux-amd64 infrastructure-components.yaml)
-BYOH_ASSETS_URL="https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases"
+BYOH_ASSETS_URL="https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost"
 BYOH_ASSETS_FILES=(metadata.yaml infrastructure-components.yaml byoh-hostagent-linux-amd64)
-ARGOWF_ASSETS_URL="https://github.com/argoproj/argo-workflows/releases"
+ARGOWF_ASSETS_URL="https://github.com/argoproj/argo-workflows"
 ARGOWF_ASSETS_FILES=(argo-linux-amd64.gz)
-ARGOCD_ASSETS_URL="https://github.com/argoproj/argo-cd/releases"
+ARGOCD_ASSETS_URL="https://github.com/argoproj/argo-cd"
 ARGOCD_ASSETS_FILES=(argocd-linux-amd64)
-GUM_ASSETS_URL="https://github.com/charmbracelet/gum/releases"
-GUM_ASSETS_FILES=(gum_0.10.0_linux_x86_64.tar.gz)
-GUM_VERSION="v0.10.0"
-GITEA_ASSETS_URL="https://github.com/go-gitea/gitea/releases"
+GUM_ASSETS_URL="https://github.com/charmbracelet/gum"
+GUM_ASSETS_FILES=(gum_0.14.1_linux_x86_64.tar.gz)
+GUM_VERSION="v0.14.1"
+GITEA_ASSETS_URL="https://github.com/go-gitea/gitea"
 GITEA_ASSETS_FILES=(gitea-1.18.1-linux-amd64)
 GITEA_VERSION="v1.8.1"
-EKSCTL_ASSETS_URL="https://github.com/eksctl-io/eksctl/releases"
+EKSCTL_ASSETS_URL="https://github.com/eksctl-io/eksctl"
 EKSCTL_ASSETS_FILES=(eksctl_linux_amd64.tar.gz)
 EKSCTL_VERSION="latest"
-AWS_IAM_AUTHENTICATOR_ASSETS_URL="https://github.com/kubernetes-sigs/aws-iam-authenticator/releases"
+AWS_IAM_AUTHENTICATOR_ASSETS_URL="https://github.com/kubernetes-sigs/aws-iam-authenticator"
 AWS_IAM_AUTHENTICATOR_ASSETS_FILES=(aws-iam-authenticator_0.5.9_linux_amd64)
 AWS_IAM_AUTHENTICATOR_VERSION="v0.5.9"
-JQ_ASSETS_URL="https://github.com/jqlang/jq/releases"
+JQ_ASSETS_URL="https://github.com/jqlang/jq"
 JQ_ASSETS_FILES=(jq-linux64)
 JQ_VERSION="jq-1.6"
 
@@ -80,14 +80,16 @@ download_assets_from_github () {
 	eval files='$'{$1_ASSETS_FILES[@]}
 	eval version='$'$1_VERSION
 
-	reponame=${url%/releases*}
-	reponame=${reponame##*.com/}
+	owner=${url#*github.com/}
+	owner=${owner%%/*}
+
+	reponame=${url##*/}
 
 	log_info "Downloading assets from $reponame"
 
 	if [[ $version == "latest" ]]
 	then
-		tag=$(github_get_latest_release $reponame)
+		tag=$(github_get_latest_release $owner/$reponame)
 	else
 		tag=$version
 	fi
@@ -97,7 +99,7 @@ download_assets_from_github () {
 
 	for f in ${files[@]}
 	do
-		curl -sSL "$url/download/$tag/$f" -o $dest_dir/$f
+		curl -sSL "$url/releases/download/$tag/$f" -o $dest_dir/$f
 	done
 }
 
@@ -186,7 +188,7 @@ if [ -d $ASSETS_DIR ]; then
 	gum confirm "Are you sure you want to clear the current directory and proceed?" || exit 1
 fi
 
-rm -rf $ASSETS_DIR
+sudo rm -rf $ASSETS_DIR
 
 mkdir $ASSETS_DIR
 mkdir -p output
@@ -194,8 +196,8 @@ mkdir -p output
 download_assets_from_github GUM
 GUM_ASSETS_DIR="$ASSETS_DIR/gum/$(ls $ASSETS_DIR/gum | grep v)"
 cd $GUM_ASSETS_DIR
-tar xfz $(ls)
-sudo cp gum /usr/local/bin
+gum_bin_path=$(tar xvfz ${GUM_ASSETS_FILES[0]} | grep gum$)
+sudo cp $gum_bin_path /usr/local/bin
 cd - >/dev/null
 
 log_info "Downloading docker packages"
