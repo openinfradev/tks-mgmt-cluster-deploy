@@ -36,6 +36,9 @@ AWS_IAM_AUTHENTICATOR_VERSION="v0.5.9"
 JQ_ASSETS_URL="https://github.com/jqlang/jq"
 JQ_ASSETS_FILES=(jq-linux64)
 JQ_VERSION="jq-1.6"
+IMGPKG_ASSETS_URL="https://github.com/carvel-dev/imgpkg"
+IMGPKG_ASSETS_FILES=(imgpkg-linux-amd64)
+IMGPKG_VERSION="${IMGPKG_VERSION}"
 
 # Git repos
 # "repo_url,tag/branch,dest_dir"
@@ -241,6 +244,11 @@ for provider in ${CAPI_INFRA_PROVIDERS[@]}; do
 			download_assets_from_github BYOH
 			cp $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/byoh-hostagent-linux-amd64 output/byoh-hostagent
 			chmod +x output/byoh-hostagent
+
+			download_assets_from_github IMGPKG
+			cp $ASSETS_DIR/imgpkg/$IMGPKG_VERSION/imgpkg-linux-amd64 output/imgpkg
+			chmod +x output/imgpkg
+
 			sed -i "s#projects.registry.vmware.com/cluster_api_provider_bringyourownhost/cluster-api-byoh-controller:$BYOH_VERSION#$TKS_BYOH_CONTOLLER_IMAGE:$BYOH_TKS_VERSION#g" $ASSETS_DIR/cluster-api-provider-bringyourownhost/$BYOH_VERSION/infrastructure-components.yaml
 			;;
 	esac
