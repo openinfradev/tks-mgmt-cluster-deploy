@@ -46,7 +46,7 @@ git_repos+=("https://github.com/openinfradev/decapod-flow,${TKS_RELEASE},decapod
 git_repos+=("https://github.com/openinfradev/tks-flow,${TKS_RELEASE},tks-flow")
 git_repos+=("https://github.com/openinfradev/decapod-base-yaml,${TKS_RELEASE},decapod-base-yaml")
 git_repos+=("https://github.com/openinfradev/decapod-site,${TKS_RELEASE},decapod-site")
-git_repos+=("https://github.com/rancher/local-path-provisioner.git,master,local-path-provisioner")
+git_repos+=("https://github.com/rancher/local-path-provisioner.git,v0.0.28,local-path-provisioner")
 
 # Helm chart
 # "chart_name,repo_url,chart_version,dest_dir"
