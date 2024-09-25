@@ -65,6 +65,7 @@ do
 
 			export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
 			export EXP_MACHINE_POOL=true
+			export EXP_CLUSTER_RESOURCE_SET=true
 			export CAPA_EKS_IAM=true
 			export CAPA_EKS_ADD_ROLES=true
 			
