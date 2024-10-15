@@ -82,6 +82,7 @@ EOF
 	else
 		clusterctl get kubeconfig $CLUSTER_NAME >output/kubeconfig_$CLUSTER_NAME
 		chmod 600 output/kubeconfig_$CLUSTER_NAME
+                export KUBECONFIG=output/kubeconfig_$CLUSTER_NAME
 		helm upgrade -i k8s-addons $ASSET_DIR/taco-helm/kubernetes-addons $HELM_VALUE_K8S_ADDONS
 		helm upgrade -i aws-ebs-csi-driver --namespace kube-system $ASSET_DIR/aws-ebs-csi-driver-helm/aws-ebs-csi-driver
 	fi
